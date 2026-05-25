@@ -1,4 +1,4 @@
--  `sing-box`一键安装脚本
+#### `sing-box`一键安装脚本
 ```
 curl -fsSL https://raw.githubusercontent.com/sky22333/proxy/main/singbox/install.sh | sh
 ```
