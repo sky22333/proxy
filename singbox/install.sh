@@ -163,8 +163,8 @@ write_config() {
     {
       "type": "mixed",
       "tag": "mixed-in",
-      "listen": "0.0.0.0",
-      "listen_port": 2080
+      "listen": "127.0.0.1",
+      "listen_port": 10808
     }
   ],
   "outbounds": [
