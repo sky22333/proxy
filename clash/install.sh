@@ -1,34 +1,28 @@
 #!/bin/bash
 set -e
 
-# 确保颜色代码可以正常工作
 export TERM=xterm-256color
 
-# 颜色定义
 GREEN='\033[32m'
 YELLOW='\033[33m'
 BLUE='\033[34m'
 RED='\033[31m'
 CYAN='\033[36m'
 PURPLE='\033[35m'
-NC='\033[0m' # 无色
+NC='\033[0m'
 
-# 可以通过环境变量替换下载地址
 V="${V:-1.19.25}"
-BIN_PATH="/usr/local/bin/mihomo"
+
 CONFIG_DIR="/etc/mihomo"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
-SERVICE_FILE="/etc/systemd/system/mihomo.service"
 CERT_KEY="$CONFIG_DIR/server.key"
 CERT_CRT="$CONFIG_DIR/server.crt"
 PASSWORD="$(cat /proc/sys/kernel/random/uuid)"
 
-# 美化函数，用于输出分隔线
 print_separator() {
   echo -e "${BLUE}══════════════════════════════════════════${NC}"
 }
 
-# 输出标题
 print_title() {
   local title="$1"
   print_separator
@@ -36,24 +30,41 @@ print_title() {
   print_separator
 }
 
-install_mihomo() {
-  if [ -f "$BIN_PATH" ]; then
-    echo -e "${YELLOW}已检测到 $BIN_PATH 存在，Mihomo 可能已安装，跳过安装。${NC}"
-    return
-  fi
+detect_arch() {
+  case "$(uname -m)" in
+    x86_64 | amd64)
+      echo "amd64"
+      ;;
+    aarch64 | arm64)
+      echo "arm64"
+      ;;
+    armv7l | armv7)
+      echo "armv7"
+      ;;
+    *)
+      echo -e "${RED}不支持的架构: $(uname -m)${NC}" >&2
+      exit 1
+      ;;
+  esac
+}
 
-  print_title "开始安装 Mihomo"
-  curl -L "https://github.com/MetaCubeX/mihomo/releases/download/v${V}/mihomo-linux-amd64-v${V}.gz" -o /tmp/mihomo.gz
-  gunzip -f /tmp/mihomo.gz
-  mv /tmp/mihomo "$BIN_PATH"
-  chmod +x "$BIN_PATH"
-  rm -f /tmp/mihomo.gz
+install_dependencies() {
+  if command -v apt >/dev/null 2>&1; then
+    apt update
+    apt install -y curl ca-certificates openssl
+  elif command -v dnf >/dev/null 2>&1; then
+    dnf install -y curl ca-certificates openssl
+  elif command -v yum >/dev/null 2>&1; then
+    yum install -y curl ca-certificates openssl
+  fi
+}
+
+write_config() {
   mkdir -p "$CONFIG_DIR"
 
   cat > "$CONFIG_FILE" << EOF
 log-level: warning
 
-# anytls协议
 listeners:
 - name: anytls-in
   type: anytls
@@ -63,49 +74,73 @@ listeners:
     user1: ${PASSWORD}
   certificate: ./server.crt
   private-key: ./server.key
-  
+
 proxies:
-- name: "direct"
+- name: direct
   type: direct
+
 rules:
 - MATCH,direct
 EOF
+}
 
-  echo -e "${CYAN}创建 systemd 服务文件...${NC}"
-  cat > "$SERVICE_FILE" << EOF
-[Unit]
-Description=mihomo Daemon, Another Clash Kernel.
-After=network.target NetworkManager.service systemd-networkd.service iwd.service
+install_mihomo() {
+  if command -v mihomo >/dev/null 2>&1; then
+    echo -e "${YELLOW}已检测到 Mihomo 已安装，跳过安装。${NC}"
+    return
+  fi
 
-[Service]
-Type=simple
-LimitNPROC=500
-LimitNOFILE=1000000
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_SYS_TIME CAP_SYS_PTRACE CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_SYS_TIME CAP_SYS_PTRACE CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE
-Restart=always
-ExecStartPre=/usr/bin/sleep 1s
-ExecStart=$BIN_PATH -d $CONFIG_DIR
-ExecReload=/bin/kill -HUP \$MAINPID
+  print_title "开始安装 Mihomo"
 
-[Install]
-WantedBy=multi-user.target
-EOF
+  install_dependencies
 
-  echo -e "${CYAN}重新加载 systemd...${NC}"
+  ARCH="$(detect_arch)"
+  echo -e "${CYAN}检测到架构: ${ARCH}${NC}"
+
+  if command -v apt >/dev/null 2>&1; then
+    PKG="/tmp/mihomo.deb"
+    URL="https://github.com/MetaCubeX/mihomo/releases/download/v${V}/mihomo-linux-${ARCH}-v${V}.deb"
+
+    curl -L "$URL" -o "$PKG"
+    apt install -y "$PKG"
+    rm -f "$PKG"
+
+  elif command -v dnf >/dev/null 2>&1; then
+    PKG="/tmp/mihomo.rpm"
+    URL="https://github.com/MetaCubeX/mihomo/releases/download/v${V}/mihomo-linux-${ARCH}-v${V}.rpm"
+
+    curl -L "$URL" -o "$PKG"
+    dnf install -y "$PKG"
+    rm -f "$PKG"
+
+  elif command -v yum >/dev/null 2>&1; then
+    PKG="/tmp/mihomo.rpm"
+    URL="https://github.com/MetaCubeX/mihomo/releases/download/v${V}/mihomo-linux-${ARCH}-v${V}.rpm"
+
+    curl -L "$URL" -o "$PKG"
+    yum install -y "$PKG"
+    rm -f "$PKG"
+
+  else
+    echo -e "${RED}不支持的系统：未检测到 apt / dnf / yum${NC}"
+    return 1
+  fi
+
+  write_config
+
   systemctl daemon-reload
-
-  echo -e "${CYAN}设置开机自启...${NC}"
   systemctl enable mihomo
 
   echo -e "${GREEN}安装完成${NC}"
+  echo -e "${GREEN}版本: v${V}${NC}"
+  echo -e "${GREEN}架构: ${ARCH}${NC}"
   echo -e "${GREEN}配置文件路径: ${CONFIG_FILE}${NC}"
-  echo -e "${GREEN}可在菜单中启动服务${NC}"
+  echo -e "${YELLOW}启动服务前请先生成证书，否则 anytls 可能启动失败。${NC}"
 }
 
 uninstall_mihomo() {
   print_title "卸载 Mihomo"
-  echo -e "${RED}确定要卸载 Mihomo？这将删除所有相关文件！(y/n)${NC}"
+  echo -e "${RED}确定要卸载 Mihomo？这将删除所有相关配置文件！(y/n)${NC}"
   read -r confirm
 
   if [[ "$confirm" != "y" ]]; then
@@ -115,9 +150,16 @@ uninstall_mihomo() {
 
   systemctl stop mihomo || true
   systemctl disable mihomo || true
-  rm -f "$BIN_PATH"
+
+  if command -v apt >/dev/null 2>&1; then
+    apt remove -y mihomo || true
+  elif command -v dnf >/dev/null 2>&1; then
+    dnf remove -y mihomo || true
+  elif command -v yum >/dev/null 2>&1; then
+    yum remove -y mihomo || true
+  fi
+
   rm -rf "$CONFIG_DIR"
-  rm -f "$SERVICE_FILE"
   systemctl daemon-reload
 
   echo -e "${GREEN}已彻底卸载 Mihomo${NC}"
@@ -126,23 +168,38 @@ uninstall_mihomo() {
 generate_self_signed_cert() {
   print_title "生成自签名证书"
   read -rp "请输入要签发证书的域名: " domain
+
   if [[ -z "$domain" ]]; then
-    echo -e "${RED}域名不能为空，请重新运行并输入有效域名。${NC}"
+    echo -e "${RED}域名不能为空。${NC}"
     return
   fi
+
   mkdir -p "$CONFIG_DIR"
 
-  echo -e "${CYAN}正在生成自签名证书，请稍候...${NC}"
-  # 使用 openssl 生成证书和私钥
   openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) \
-    -keyout "$CERT_KEY" -out "$CERT_CRT" -subj "/CN=$domain" -days 3650
+    -keyout "$CERT_KEY" \
+    -out "$CERT_CRT" \
+    -subj "/CN=$domain" \
+    -days 3650
 
-  # 修改证书权限
-  chmod 600 /etc/mihomo/server.key && chmod 644 /etc/mihomo/server.crt
+  chmod 600 "$CERT_KEY"
+  chmod 644 "$CERT_CRT"
 
   echo -e "${GREEN}自签名证书生成成功！${NC}"
   echo -e "${GREEN}证书路径: ${CERT_CRT}${NC}"
   echo -e "${GREEN}私钥路径: ${CERT_KEY}${NC}"
+}
+
+show_config_path() {
+  echo -e "${CYAN}配置目录:${NC} $CONFIG_DIR"
+  echo -e "${CYAN}配置文件:${NC} $CONFIG_FILE"
+  echo -e "${CYAN}证书文件:${NC} $CERT_CRT"
+  echo -e "${CYAN}私钥文件:${NC} $CERT_KEY"
+
+  if [[ -d "$CONFIG_DIR" ]]; then
+    echo ""
+    ls -la "$CONFIG_DIR"
+  fi
 }
 
 menu() {
@@ -162,8 +219,7 @@ menu() {
     echo -e "${CYAN} [${PURPLE}0${CYAN}] ${PURPLE}退出${NC}"
 
     print_separator
-    echo -e "请输入选项编号: "
-    read -r choice
+    read -rp "请输入选项编号: " choice
 
     case "$choice" in
       1) install_mihomo ;;
@@ -173,7 +229,7 @@ menu() {
       5) systemctl status mihomo ;;
       6) journalctl -u mihomo -o cat -f ;;
       7) generate_self_signed_cert ;;
-      8) ls /etc/mihomo && readlink -f /etc/mihomo/config.yaml ;;
+      8) show_config_path ;;
       9) uninstall_mihomo ;;
       0) echo -e "${PURPLE}再见！${NC}"; exit 0 ;;
       *) echo -e "${RED}无效选项，请重新输入。${NC}" ;;
@@ -181,6 +237,5 @@ menu() {
   done
 }
 
-# 清屏并启动菜单
 clear
 menu
