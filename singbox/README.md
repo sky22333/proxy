@@ -1,6 +1,6 @@
 -  `sing-box`一键安装脚本
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/sky22333/xray-singbox/main/singbox/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/sky22333/proxy/main/singbox/install.sh)
 ```
 
 支持环境变量传入版本号

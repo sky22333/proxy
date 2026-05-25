@@ -10,7 +10,7 @@
 
 ### `mihome`一键安装脚本
 ```
-bash <(curl -sSL https://cdn.jsdelivr.net/gh/sky22333/xray-singbox@main/clash/install.sh)
+bash <(curl -sSL https://cdn.jsdelivr.net/gh/sky22333/proxy@main/mihomo/install.sh)
 ```
 
 ### `mihome`一键安装脚本（指定版本）
@@ -19,7 +19,7 @@ bash <(curl -sSL https://cdn.jsdelivr.net/gh/sky22333/xray-singbox@main/clash/in
 v="1.19.25"
 
 # 一键安装
-bash <(curl -sSL https://raw.githubusercontent.com/sky22333/xray-singbox/main/clash/install.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/sky22333/proxy/main/mihomo/install.sh)
 ```
 
 ### 申请证书
