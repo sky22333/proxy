@@ -1,14 +1,10 @@
-# xray与sing-box
-
 ### Docker运行xray
 
-创建配置文件
+创建配置文件：
 ```
 touch config.json
 ```
-
 运行：
-
 ```
 docker run -d \
   --network host \
@@ -18,111 +14,55 @@ docker run -d \
   teddysun/xray
 ```
 
-
 ---
 
-
-### 脚本安装xray
-
+### 官方脚本安装xray
 ```
+# 安装 / 升级 Xray
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
-```
 
-- 完全卸载
-```
+# 安装指定版本
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -v v1.8.4
+
+# 完全卸载
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ remove --purge
-```
 
-####  xray配置文件路径
-```
-/usr/local/etc/xray/config.json
-```
+# 只更新 geoip.dat 和 geosite.dat
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install-geodata
 
----
+# 开机自启
+systemctl enable xray
 
-<details>
-<summary>手动安装xray</summary>
+# 关闭开机自启
+systemctl disable xray
 
-###  手动安装 Xray
+# 启动服务
+systemctl start xray
 
-1. 下载 Xray-core
+# 停止服务
+systemctl stop xray
 
-访问 Xray-core 的 GitHub 发布页面  https://github.com/XTLS/Xray-core/releases
+# 重启服务
+systemctl restart xray
 
-下载`Xray-linux-64.zip`文件
+# 查看服务状态
+systemctl status xray
 
-####  2. 解压文件
-解压下载的文件到`/usr/local/bin`目录：
+# 查看实时 systemd 日志
+journalctl -u xray -o cat -f
 
-```
-cd /usr/local/bin
-```
-```
-sudo unzip Xray-linux-64.zip -d /usr/local/bin
-```
-确保 `/usr/local/bin` 在您的 PATH 环境变量中。
+# 查看是否运行中
+systemctl is-active xray
 
-####  3. 赋予执行权限
-赋予 Xray 可执行文件执行权限：
-```
-sudo chmod +x /usr/local/bin/xray
-```
-####  4. 创建配置文件
-Xray 需要一个配置文件才能运行。通常，这个文件位于 /usr/local/etc/xray/config.json。
-```
-sudo mkdir -p /usr/local/etc/xray
-```
-创建一个新的 config.json 文件并编辑它。您可以使用任何文本编辑器：
-```
-sudo nano /usr/local/etc/xray/config.json
-```
-在编辑器中，输入您的 Xray 配置。
+# 查看 Xray 版本
+xray version
 
-您可以在v2rayN客户端中导出所选服务器客户端配置，然后复制粘贴进去
+# 测试配置文件
+xray run -test -config /usr/local/etc/xray/config.json
 
-
-####  5. 运行 Xray
-
-为了使 Xray 在启动时自动运行，您可以创建一个 systemd 服务文件。
-
-创建一个新的 systemd 服务文件：
+# 手动运行 Xray
+xray run -config /usr/local/etc/xray/config.json
 ```
-sudo nano /etc/systemd/system/xray.service
-```
-在文件中添加以下内容（您可能需要根据您的安装调整路径）：
-
-```
-[Unit]
-Description=Xray Service
-After=network.target
-
-[Service]
-User=nobody
-ExecStart=/usr/local/bin/xray -c /usr/local/etc/xray/config.json
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-```
-开机自启并启动服务：
-```
-sudo systemctl enable xray
-```
-```
-sudo systemctl start xray
-```
-检查服务状态：
-```
-sudo systemctl status xray
-```
-重启：
-```
-sudo systemctl restart xray
-```
-
-</details>
-
----
 
 ##  Reality域名推荐列表
 
@@ -151,6 +91,5 @@ www.icloud.com
 ```
 ---
 #####  [更多配置模板](https://github.com/XTLS/Xray-examples)
-
 
 #####  [配置文档](https://xtls.github.io/config/)
