@@ -5,8 +5,8 @@ docker run -d \
   --network host \
   --name xray \
   --restart=always \
-  -v ./xray:/usr/local/etc/xray \
-  ghcr.io/xtls/xray-core
+  -v ./xray:/etc/xray \
+  teddysun/xray
 ```
 
 ---
