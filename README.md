@@ -1,7 +1,7 @@
 ### Docker运行xray
 
 ```
-mkdir -p xray && touch xray/config.json
+mkdir -p /etc/xray && touch /etc/xray/config.json
 ```
 
 ```
@@ -9,7 +9,7 @@ docker run -d \
   --network host \
   --name xray \
   --restart=always \
-  -v ./xray:/etc/xray \
+  -v /etc/xray:/etc/xray \
   teddysun/xray
 ```
 
