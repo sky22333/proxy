@@ -212,7 +212,7 @@ uninstall_singbox() {
 
   cecho "${RED}确定要卸载 sing-box？这将删除配置目录 ${CONFIG_DIR}！(y/n)${NC}"
   printf "请输入: "
-  read confirm
+  read confirm < /dev/tty
 
   if [ "$confirm" != "y" ]; then
     cecho "${YELLOW}已取消卸载${NC}"
@@ -251,7 +251,7 @@ generate_self_signed_cert() {
   print_title "生成自签名证书"
 
   printf "请输入要签发证书的域名: "
-  read domain
+  read domain < /dev/tty
 
   if [ -z "$domain" ]; then
     cecho "${RED}域名不能为空。${NC}"
@@ -305,7 +305,7 @@ menu() {
 
     print_separator
     printf "请输入选项编号: "
-    read choice
+    read choice < /dev/tty
 
     case "$choice" in
       1) install_singbox ;;
