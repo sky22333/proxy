@@ -14,7 +14,7 @@ PURPLE='\033[35m'
 NC='\033[0m' # 无色
 
 # 可以通过环境变量替换下载地址
-MIHOMO_URL="${MIHOMO_URL:-https://github.com/MetaCubeX/mihomo/releases/download/v1.19.11/mihomo-linux-amd64-v1.19.11.gz}"
+V="${V:-1.19.25}"
 BIN_PATH="/usr/local/bin/mihomo"
 CONFIG_DIR="/etc/mihomo"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
@@ -43,7 +43,7 @@ install_mihomo() {
   fi
 
   print_title "开始安装 Mihomo"
-  curl -L "$MIHOMO_URL" -o /tmp/mihomo.gz
+  curl -L "https://github.com/MetaCubeX/mihomo/releases/download/v${V}/mihomo-linux-amd64-v${V}.gz" -o /tmp/mihomo.gz
   gunzip -f /tmp/mihomo.gz
   mv /tmp/mihomo "$BIN_PATH"
   chmod +x "$BIN_PATH"
