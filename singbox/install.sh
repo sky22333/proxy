@@ -240,7 +240,6 @@ install_mihomo_style_singbox() {
   echo -e "${GREEN}安装完成${NC}"
   echo -e "${GREEN}版本: v${V}${NC}"
   echo -e "${GREEN}配置文件路径: ${CONFIG_FILE}${NC}"
-  echo -e "${GREEN}默认 mixed 代理端口: 2080${NC}"
 }
 
 uninstall_singbox() {
