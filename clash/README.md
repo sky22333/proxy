@@ -15,8 +15,8 @@ bash <(curl -sSL https://cdn.jsdelivr.net/gh/sky22333/xray-singbox@main/clash/in
 
 ### `mihome`一键安装脚本（指定版本）
 ```
-# 设置文件地址环境变量
-MIHOMO_URL="https://your.custom.url/mihomo.gz"
+# 指定版本变量
+v="1.19.25"
 
 # 一键安装
 bash <(curl -sSL https://raw.githubusercontent.com/sky22333/xray-singbox/main/clash/install.sh)
