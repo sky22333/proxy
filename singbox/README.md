@@ -3,18 +3,12 @@
 bash <(curl -Ls https://raw.githubusercontent.com/sky22333/xray-singbox/main/singbox/install.sh)
 ```
 
-> 默认安装`1.12.10`版本，脚本结尾支持动态传入版本号，例如：`-v 1.12.10`
-
-- 卸载
-
+支持环境变量传入版本号
 ```
-dpkg --purge sing-box
-rm -rf /etc/sing-box
+V=1.13.12
 ```
 
 ---
-
-# sing-box
 
 #### Dokcer安装
 ```
