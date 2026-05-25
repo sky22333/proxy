@@ -1,17 +1,12 @@
 ### Docker运行xray
 
-创建配置文件：
-```
-touch config.json
-```
-运行：
 ```
 docker run -d \
   --network host \
   --name xray \
   --restart=always \
-  -v ./config.json:/etc/xray/config.json \
-  teddysun/xray
+  -v ./xray:/usr/local/etc/xray \
+  ghcr.io/xtls/xray-core
 ```
 
 ---
