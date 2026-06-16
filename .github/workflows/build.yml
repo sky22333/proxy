@@ -1,0 +1,77 @@
+name: Build sing-box aar
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "sing-box tag，例如 v1.13.13"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Android SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download sing-box source
+        run: |
+          git clone https://github.com/SagerNet/sing-box.git source
+
+      - name: Checkout tag
+        working-directory: source
+        run: |
+          git fetch --tags
+          git checkout "${{ github.event.inputs.tag }}"
+          git describe --tags
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: source/go.mod
+          cache: true
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "ndk;28.0.13004108"
+
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/28.0.13004108" >> "$GITHUB_ENV"
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+
+      - name: Install build dependencies
+        working-directory: source
+        run: |
+          make lib_install
+
+      - name: Build libbox
+        working-directory: source
+        run: |
+          make lib_android
+          test -f libbox.aar
+          ls -lh libbox.aar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libbox-aar
+          path: source/libbox.aar
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.tag }}
+          files: source/libbox.aar
