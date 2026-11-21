@@ -75,7 +75,6 @@ print_title() {
 
 print_kv() {
   local _pad
-  # ASCII 标签补到 4 列，与中文标签对齐
   case "$1" in
     *[!-~]*) _pad=0 ;;
     *) _pad=$((4 - ${#1})) ;;
@@ -98,7 +97,6 @@ err() {
 
 # ════════════ 交互 ════════════
 
-# read_re -> RE：读一行；管道执行（curl|sh）时改读 /dev/tty，SB_STDIN=1 强制读 stdin
 read_re() {
   if [ "${SB_STDIN:-0}" = "1" ] || [ -t 0 ]; then
     read -r RE || RE=""
@@ -109,7 +107,6 @@ read_re() {
   fi
 }
 
-# ask <提示> [默认值] -> RE
 ask() {
   local _def
   _def="$2"
@@ -122,7 +119,6 @@ ask() {
   [ -z "$RE" ] && RE="$_def"
 }
 
-# ask_choice <标题> <选项...> -> RE（编号）
 ask_choice() {
   local _title _i _opt
   _title="$1"
@@ -166,7 +162,6 @@ find_bin() {
   return 1
 }
 
-# 没有内核就问一句要不要装，装失败或用户拒绝才退出
 require_bin() {
   find_bin && return 0
   warn "未检测到 sing-box 内核"
@@ -224,7 +219,6 @@ gen_uuid() {
 }
 
 gen_password() {
-  # 24 位十六进制，URL 安全
   "$SB_BIN" generate rand 12 --hex
 }
 
@@ -263,7 +257,6 @@ valid_port() {
 }
 
 valid_domain() {
-  # 只允许字母数字点横线，且必须含点
   case "$1" in
     ''|.*|*..*|*[!a-zA-Z0-9.-]*) return 1 ;;
     *.*) return 0 ;;
@@ -310,7 +303,6 @@ port_used() {
   return 1
 }
 
-# node_line <序号> -> 该行原文
 node_line() {
   local _i _l
   _i=0
@@ -332,7 +324,6 @@ node_add() {
     "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" >> "$STATE"
 }
 
-# pick_node <动作>：列出节点让用户选，回填 N_* 变量，无节点或序号非法返回 1
 pick_node() {
   local _total _i _t _tag _port _rest _line
   _total=$(node_count)
@@ -367,7 +358,6 @@ $_line
 EOF
 }
 
-# node_rewrite <序号> [八字段]：有字段则替换该行，无则删除该行
 node_rewrite() {
   local _idx _i _l
   _idx="$1"
@@ -406,7 +396,6 @@ proto_label() {
 
 # ════════════ 证书 ════════════
 
-# ensure_cert <域名>：缺证书就自签，返回 .crt 路径
 ensure_cert() {
   local _crt _key
   mkdir -p "$CERT_DIR"
@@ -426,7 +415,6 @@ ensure_cert() {
   printf '%s' "$_crt"
 }
 
-# 无节点引用时删掉该域名的证书
 cleanup_cert() {
   local _refs
   [ -n "$1" ] || return 0
@@ -478,12 +466,11 @@ EOF
     return 0
   fi
 
-  # hy2 / anytls 差异在 type、alpn 与伪装页
   if [ "$_type" = "hy2" ]; then
     _head="      \"type\": \"hysteria2\","
     _alpn='
         "alpn": ["h3"],'
-    # 被 HTTP/3 探测时返回普通 404，不暴露 hysteria 自身的响应特征
+    # 被 HTTP/3 探测时返回普通 404
     _masq='
       "masquerade": {
         "type": "string",
@@ -492,7 +479,6 @@ EOF
       },'
   else
     _head="      \"type\": \"anytls\","
-    # 真实 HTTPS 站点几乎都会协商 h2，不协商本身就是特征
     _alpn='
         "alpn": ["h2", "http/1.1"],'
     _masq=''
@@ -544,7 +530,6 @@ render_config() {
     else
       printf ',\n'
     fi
-    # 命令替换吃掉末尾换行，逗号才能紧跟在 } 后
     _body=$(render_inbound "$_t" "$_tag" "$_port" "$_sec" "$_sni" "$_pbk" "$_pvk" "$_sid")
     printf '%s' "$_body"
   done < "$STATE"
@@ -555,7 +540,7 @@ render_config() {
   printf '    {\n      "type": "block",\n      "tag": "block"\n    }\n'
   printf '  ],\n'
 
-  # 私网与保留地址一律拦掉，避免节点被当作访问内网 / 云 metadata 的跳板
+  # 私网与保留地址一律拦掉
   printf '  "route": {\n'
   printf '    "default_domain_resolver": {\n      "server": "cf"\n    },\n'
   printf '    "rules": [\n'
@@ -679,7 +664,6 @@ do_view() {
     return 0
   fi
 
-  # 先预热地址缓存：node_url 在子 shell 里跑，不预热会每个节点各查一次
   detect_addr >/dev/null
 
   _i=0
@@ -1207,7 +1191,6 @@ do_uninstall() {
     apk del "$SERVICE_NAME" >/dev/null 2>&1 || true
   fi
 
-  # 包里的 StateDirectory 和 sysusers 建的用户，purge 不会带走
   rm -rf /var/lib/"$SERVICE_NAME" /var/lib/"$SERVICE_NAME"-*
   userdel "$SERVICE_NAME" 2>/dev/null || true
   groupdel "$SERVICE_NAME" 2>/dev/null || true
