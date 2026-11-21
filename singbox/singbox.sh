@@ -9,8 +9,11 @@
 #    cert/<域名>.crt  自签证书
 #    cert/<域名>.key  对应私钥
 #
+#  内核：/usr/local/bin/sing-box（install 时下载，可用 BIN_PATH 改）
+#
 #  用法：
 #    sh singbox.sh             进入菜单
+#    sh singbox.sh install     安装内核（已装则跳过）并配置开机自启
 #    sh singbox.sh add         添加节点（会询问协议）
 #    sh singbox.sh add hy2     直接添加，协议可选 reality / hy2 / anytls
 #    sh singbox.sh change      更改节点
@@ -37,6 +40,11 @@ STATE="$SB_DIR/nodes.tsv"
 CONFIG_FILE="$SB_DIR/config.json"
 CERT_DIR="$SB_DIR/cert"
 SERVICE_NAME="sing-box"
+
+# 内核：装到哪、装哪个版本
+SB_VERSION="${SB_VERSION:-1.14.4}"
+BIN_PATH="${BIN_PATH:-/usr/local/bin/$SERVICE_NAME}"
+UNIT_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 
 DEFAULT_REALITY_SNI="www.tesla.com"
 DEFAULT_TLS_SNI="bing.com"
@@ -145,7 +153,7 @@ find_bin() {
     SB_BIN=$(command -v sing-box)
     return 0
   fi
-  for _p in /usr/bin/sing-box /usr/local/bin/sing-box "$SB_DIR/sing-box"; do
+  for _p in "$BIN_PATH" /usr/bin/sing-box /usr/local/bin/sing-box "$SB_DIR/sing-box"; do
     if [ -x "$_p" ]; then
       SB_BIN="$_p"
       return 0
@@ -154,12 +162,19 @@ find_bin() {
   return 1
 }
 
+# 没有内核就问一句要不要装，装失败或用户拒绝才退出
 require_bin() {
-  if ! find_bin; then
-    err "未找到 sing-box 内核"
-    cecho "  ${DIM}请先执行目录内的 install.sh 完成安装${NC}"
-    exit 1
-  fi
+  find_bin && return 0
+  warn "未检测到 sing-box 内核"
+  ask "现在安装 v$SB_VERSION (y/n)" "y"
+  case "$RE" in
+    y|Y|yes|YES) ;;
+    *)
+      warn "已取消，没有内核无法继续"
+      exit 1
+      ;;
+  esac
+  do_install || exit 1
 }
 
 svc_restart() {
@@ -662,9 +677,9 @@ do_view() {
   if svc_active; then
     ok "$SERVICE_NAME 运行中"
   else
-    warn "$SERVICE_NAME 未运行（或未安装 systemd 服务）"
+    warn "$SERVICE_NAME 未运行（或未安装服务）"
   fi
-  printf "  ${DIM}配置文件 %s${NC}\n" "$CONFIG_FILE"
+  printf "  ${DIM}内核 %s  配置 %s${NC}\n" "$(kernel_version)" "$CONFIG_FILE"
 }
 
 # ════════════ 业务：添加 ════════════
@@ -917,6 +932,214 @@ do_del() {
   ok "已删除 $N_TAG"
 }
 
+# ════════════ 业务：安装 ════════════
+
+# 第一行形如 "sing-box version 1.14.4"，取最后一个字段
+kernel_version() {
+  [ -x "$SB_BIN" ] || return 1
+  "$SB_BIN" version 2>/dev/null | awk 'NR == 1 { print $NF }'
+}
+
+arch_tag() {
+  case "$(uname -m)" in
+    x86_64|amd64) printf 'amd64' ;;
+    aarch64|arm64) printf 'arm64' ;;
+    armv7l|armv7) printf 'armv7' ;;
+    i386|i686) printf '386' ;;
+    *) return 1 ;;
+  esac
+}
+
+# 下载和签证书要用的命令，缺了就交给包管理器补
+ensure_tools() {
+  local _need _c
+  _need=""
+  for _c in curl tar openssl; do
+    command -v "$_c" >/dev/null 2>&1 || _need="$_need $_c"
+  done
+  [ -z "$_need" ] && return 0
+
+  warn "缺少$_need，尝试安装"
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get update -qq >/dev/null 2>&1
+    apt-get install -y $_need >/dev/null 2>&1
+  elif command -v dnf >/dev/null 2>&1; then
+    dnf install -y $_need >/dev/null 2>&1
+  elif command -v yum >/dev/null 2>&1; then
+    yum install -y $_need >/dev/null 2>&1
+  elif command -v apk >/dev/null 2>&1; then
+    apk add --no-cache $_need >/dev/null 2>&1
+  fi
+
+  for _c in $_need; do
+    if ! command -v "$_c" >/dev/null 2>&1; then
+      err "安装 $_c 失败，请手动装好后重试"
+      return 1
+    fi
+  done
+}
+
+install_bin() {
+  local _arch _url _pkg _dir _src _v
+  _arch=$(arch_tag) || {
+    err "不支持的架构：$(uname -m)"
+    return 1
+  }
+  _url="https://github.com/SagerNet/sing-box/releases/download/v$SB_VERSION/sing-box-$SB_VERSION-linux-$_arch.tar.gz"
+  _pkg="/tmp/sing-box-$SB_VERSION-$_arch.tar.gz"
+  _dir="/tmp/sb-install-$$"
+
+  print_kv "版本" "v$SB_VERSION"
+  print_kv "架构" "$_arch"
+  printf "  ${DIM}下载中（约 30MB）...${NC}\n"
+  if ! curl -fsSL --retry 2 --retry-delay 1 --connect-timeout 10 -o "$_pkg" "$_url"; then
+    rm -f "$_pkg"
+    err "下载失败，可用 SB_VERSION=版本号 换个版本再试"
+    return 1
+  fi
+
+  rm -rf "$_dir"
+  mkdir -p "$_dir"
+  _src="$_dir/sing-box-$SB_VERSION-linux-$_arch/sing-box"
+  if ! tar -xzf "$_pkg" -C "$_dir" || [ ! -f "$_src" ]; then
+    rm -rf "$_dir" "$_pkg"
+    err "解压失败或包内找不到 sing-box"
+    return 1
+  fi
+
+  mkdir -p "$(dirname "$BIN_PATH")"
+  if ! cp -f "$_src" "$BIN_PATH"; then
+    rm -rf "$_dir" "$_pkg"
+    err "写入 $BIN_PATH 失败"
+    return 1
+  fi
+  chmod 755 "$BIN_PATH"
+  rm -rf "$_dir" "$_pkg"
+
+  SB_BIN="$BIN_PATH"
+  _v=$(kernel_version)
+  if [ -z "$_v" ]; then
+    err "$BIN_PATH 无法执行：检查分区是否 noexec，或架构是否匹配"
+    return 1
+  fi
+  ok "已安装 $BIN_PATH ($_v)"
+}
+
+# 只用 -c 指向自己的 config.json，不接管整个配置目录
+write_unit() {
+  local _tmp
+  mkdir -p "$(dirname "$UNIT_FILE")"
+  _tmp="$UNIT_FILE.new"
+  cat > "$_tmp" <<EOF
+[Unit]
+Description=sing-box service
+After=network-online.target nss-lookup.target
+Wants=network-online.target
+# 还没添加节点时不启动，避免开机反复失败
+ConditionPathExists=$CONFIG_FILE
+
+[Service]
+Type=simple
+ExecStart=$SB_BIN run -c $CONFIG_FILE
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=infinity
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  if [ ! -s "$_tmp" ]; then
+    rm -f "$_tmp"
+    return 1
+  fi
+
+  # 内容没变就不动，避免把手工改过的单元冲掉
+  if [ -f "$UNIT_FILE" ] && cmp -s "$_tmp" "$UNIT_FILE"; then
+    rm -f "$_tmp"
+    return 0
+  fi
+  mv -f "$_tmp" "$UNIT_FILE"
+  systemctl daemon-reload 2>/dev/null
+  return 0
+}
+
+write_openrc() {
+  local _f
+  mkdir -p /etc/init.d
+  _f="/etc/init.d/$SERVICE_NAME"
+  cat > "$_f" <<EOF
+#!/sbin/openrc-run
+name="$SERVICE_NAME"
+command="$SB_BIN"
+command_args="run -c $CONFIG_FILE"
+command_background=true
+pidfile="/run/\${RC_SVCNAME}.pid"
+output_log="/var/log/$SERVICE_NAME.log"
+error_log="/var/log/$SERVICE_NAME.log"
+EOF
+  chmod 755 "$_f"
+}
+
+# 已装则只补单元和自启，不重复下载
+do_install() {
+  local _v
+  print_title "安装 sing-box"
+
+  if [ "$(id -u)" != "0" ]; then
+    err "安装需要 root，请用 root 或 sudo 执行"
+    return 1
+  fi
+
+  if find_bin; then
+    _v=$(kernel_version)
+    ok "内核已安装：${_v:-未知版本}  $SB_BIN"
+    print_kv "处理" "跳过下载"
+  else
+    ensure_tools || return 1
+    install_bin || return 1
+    find_bin || {
+      err "安装完仍找不到 sing-box"
+      return 1
+    }
+  fi
+
+  mkdir -p "$SB_DIR" "$CERT_DIR"
+
+  if [ "${SB_NO_SERVICE:-0}" = "1" ]; then
+    warn "SB_NO_SERVICE=1，跳过服务配置"
+  elif command -v systemctl >/dev/null 2>&1; then
+    if write_unit; then
+      ok "服务单元 $UNIT_FILE"
+    else
+      err "服务单元写入失败"
+    fi
+    systemctl enable "$SERVICE_NAME" >/dev/null 2>&1 && ok "已设置开机自启"
+    if [ -f "$CONFIG_FILE" ]; then
+      systemctl restart "$SERVICE_NAME" >/dev/null 2>&1
+      sleep 1
+      if svc_active; then
+        ok "服务已启动"
+      else
+        warn "服务未起来：journalctl -u $SERVICE_NAME -n 30"
+      fi
+    else
+      warn "还没有配置文件，添加第一个节点后自动生效"
+    fi
+  elif command -v rc-update >/dev/null 2>&1; then
+    write_openrc && ok "服务脚本 /etc/init.d/$SERVICE_NAME"
+    rc-update add "$SERVICE_NAME" default >/dev/null 2>&1 && ok "已设置开机自启"
+    [ -f "$CONFIG_FILE" ] && rc-service "$SERVICE_NAME" restart >/dev/null 2>&1
+  else
+    warn "未检测到 systemd / openrc，内核已装好，需自行托管服务"
+  fi
+
+  printf "\n"
+  print_kv "内核" "$SB_BIN"
+  print_kv "配置" "$CONFIG_FILE"
+}
+
 # ════════════ 业务：卸载 ════════════
 
 # 确认 SB_DIR 真的是本脚本的配置目录，才允许 rm -rf
@@ -934,7 +1157,7 @@ do_uninstall() {
   print_title "完整卸载"
 
   print_kv "服务" "停止并取消开机自启"
-  print_kv "程序" "移除 sing-box 包，清掉残留二进制"
+  print_kv "程序" "移除包与 $BIN_PATH 等残留二进制"
   print_kv "数据" "/var/lib/sing-box 与系统用户 sing-box"
   print_kv "单元" "systemd / openrc 的服务文件"
   print_kv "配置" "$SB_DIR（节点清单、config.json、证书）"
@@ -968,7 +1191,7 @@ do_uninstall() {
   groupdel "$SERVICE_NAME" 2>/dev/null || true
 
   # 非包管理器安装的二进制
-  for _p in /usr/bin/"$SERVICE_NAME" /usr/local/bin/"$SERVICE_NAME" \
+  for _p in "$BIN_PATH" /usr/bin/"$SERVICE_NAME" /usr/local/bin/"$SERVICE_NAME" \
             /usr/sbin/"$SERVICE_NAME" /usr/local/sbin/"$SERVICE_NAME" \
             "$SB_DIR/$SERVICE_NAME"; do
     rm -f "$_p"
@@ -1020,7 +1243,8 @@ menu() {
     cecho "  ${CYAN} [${GREEN}2${CYAN}]${NC} 更改节点"
     cecho "  ${CYAN} [${GREEN}3${CYAN}]${NC} 查看节点"
     cecho "  ${CYAN} [${RED}4${CYAN}]${NC} 删除节点"
-    cecho "  ${CYAN} [${RED}5${CYAN}]${NC} 完整卸载"
+    cecho "  ${CYAN} [${BLUE}5${CYAN}]${NC} 安装 / 更新内核"
+    cecho "  ${CYAN} [${RED}6${CYAN}]${NC} 完整卸载"
     cecho "  ${CYAN} [${PURPLE}0${CYAN}]${NC} 退出"
 
     print_separator
@@ -1033,7 +1257,8 @@ menu() {
       2) do_change ;;
       3) do_view ;;
       4) do_del ;;
-      5) do_uninstall ;;
+      5) do_install ;;
+      6) do_uninstall ;;
       9) config_preview ;;
       0) cecho "${PURPLE}再见${NC}"; exit 0 ;;
       *) err "无效选项" ;;
@@ -1055,6 +1280,7 @@ sing-box 节点管理脚本
 用法: sh singbox.sh [命令]
 
 命令:
+  install       安装内核（已装则跳过），并配置好开机自启
   add [协议]    添加节点，协议可选 reality / hy2 / anytls，省略则询问
   change        更改节点（端口 / 名称 / 域名 / 密码或密钥 / 重签证书）
   view          查看节点与分享链接
@@ -1064,13 +1290,18 @@ sing-box 节点管理脚本
 
 环境变量:
   SB_DIR        配置目录，默认 /etc/sing-box
-  SB_BIN        sing-box 内核路径，默认自动查找
+  SB_VERSION    安装的内核版本，默认 1.14.4
+  BIN_PATH      内核安装路径，默认 /usr/local/bin/sing-box
+  SB_BIN        直接指定已有内核，设置后不再下载
   ADDR          分享链接里的服务器地址，默认自动探测
 EOF
 }
 
 main() {
   case "$1" in
+    install|i)
+      do_install
+      ;;
     add|a)
       shift
       do_add "${1:-}"
