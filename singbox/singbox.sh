@@ -49,6 +49,10 @@ UNIT_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 DEFAULT_REALITY_SNI="www.tesla.com"
 DEFAULT_TLS_SNI="bing.com"
 
+# DNS 上游：类型 udp / https / tls，境内线路建议改成 https 走 DoH
+DNS_TYPE="udp"
+DNS_UPSTREAM="1.1.1.1"
+
 # 公网地址缓存，避免重复探测
 _ADDR=""
 
@@ -447,7 +451,7 @@ cleanup_cert() {
 # ════════════ 渲染 config.json ════════════
 
 render_inbound() {
-  local _type _tag _port _secret _sni _pbk _pvk _sid _head _alpn
+  local _type _tag _port _secret _sni _pbk _pvk _sid _head _alpn _masq
   _type="$1"; _tag="$2"; _port="$3"; _secret="$4"; _sni="$5"
   _pbk="$6"; _pvk="$7"; _sid="$8"
 
@@ -483,14 +487,24 @@ EOF
     return 0
   fi
 
-  # hy2 / anytls 差异只在 type 与 alpn
+  # hy2 / anytls 差异在 type、alpn 与伪装页
   if [ "$_type" = "hy2" ]; then
     _head="      \"type\": \"hysteria2\","
     _alpn='
         "alpn": ["h3"],'
+    # 被 HTTP/3 探测时返回普通 404，不暴露 hysteria 自身的响应特征
+    _masq='
+      "masquerade": {
+        "type": "string",
+        "status_code": 404,
+        "content": "Not Found"
+      },'
   else
     _head="      \"type\": \"anytls\","
-    _alpn=''
+    # 真实 HTTPS 站点几乎都会协商 h2，不协商本身就是特征
+    _alpn='
+        "alpn": ["h2", "http/1.1"],'
+    _masq=''
   fi
 
   cat <<EOF
@@ -504,7 +518,7 @@ $_head
           "name": "$_tag",
           "password": "$_secret"
         }
-      ],
+      ],$_masq
       "tls": {
         "enabled": true,$_alpn
         "certificate_path": "$CERT_DIR/$_sni.crt",
@@ -518,6 +532,15 @@ render_config() {
   local _first _body _t _tag _port _sec _sni _pbk _pvk _sid
   printf '{\n'
   printf '  "log": {\n    "level": "warn",\n    "timestamp": true\n  },\n'
+
+  # 显式上游：不依赖 /etc/resolv.conf，prefer_ipv4 规避 v6 不通导致的超时
+  printf '  "dns": {\n'
+  printf '    "servers": [\n'
+  printf '      {\n        "tag": "cf",\n        "type": "%s",\n        "server": "%s"\n      },\n' "$DNS_TYPE" "$DNS_UPSTREAM"
+  printf '      {\n        "tag": "local",\n        "type": "local"\n      }\n'
+  printf '    ],\n'
+  printf '    "final": "cf"\n'
+  printf '  },\n'
 
   printf '  "inbounds": [\n'
   _first=1
@@ -537,9 +560,17 @@ render_config() {
   printf '\n  ],\n'
 
   printf '  "outbounds": [\n'
-  printf '    {\n      "type": "direct",\n      "tag": "direct"\n    }\n'
+  printf '    {\n      "type": "direct",\n      "tag": "direct"\n    },\n'
+  printf '    {\n      "type": "block",\n      "tag": "block"\n    }\n'
   printf '  ],\n'
-  printf '  "route": {\n    "rules": []\n  }\n'
+
+  # 私网与保留地址一律拦掉，避免节点被当作访问内网 / 云 metadata 的跳板
+  printf '  "route": {\n'
+  printf '    "default_domain_resolver": {\n      "server": "cf",\n      "strategy": "prefer_ipv4"\n    },\n'
+  printf '    "rules": [\n'
+  printf '      {\n        "ip_is_private": true,\n        "outbound": "block"\n      }\n'
+  printf '    ]\n'
+  printf '  }\n'
   printf '}\n'
 }
 
