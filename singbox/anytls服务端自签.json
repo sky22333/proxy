@@ -16,7 +16,6 @@
       ],
       "tls": {
         "enabled": true,
-        "insecure": true, // 允许不安全
         "server_name": "bing.com", // 自签证书的域名
         "certificate_path": "/etc/sing-box/cert.pem",  // 自签证书公钥
         "key_path": "/etc/sing-box/key.pem" // 自签证书私钥

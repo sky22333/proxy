@@ -47,31 +47,3 @@ proxies:
     port: 1080 # SOCKS端口
     username: "sockuser" # SOCKS认证用户名
     password: "sockpass123" # SOCKS认证密码
-
-# 代理组配置
-proxy-groups:
-  - name: "节点选择"
-    type: select
-    proxies:
-      - "anytls-out"
-      - "socks-out"
-      - DIRECT
-
-  - name: "全球代理"
-    type: select
-    proxies:
-      - "节点选择"
-      - "anytls-out"
-      - "socks-out"
-      - DIRECT
-
-# 规则配置
-rules:
-  # 本地网络直连
-  - IP-CIDR,10.0.0.0/8,DIRECT
-  - IP-CIDR,172.16.0.0/12,DIRECT
-  - IP-CIDR,192.168.0.0/16,DIRECT
-  - IP-CIDR,127.0.0.0/8,DIRECT
-   
-  # 默认规则 - 其他所有流量通过代理
-  - MATCH,全球代理

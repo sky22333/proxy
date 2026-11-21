@@ -3,13 +3,35 @@
     "level": "info"
   },
   "dns": {
+    // 1.14 起 DNS 服务器改用 type + server 结构
     "servers": [
       {
-        "address": "tls://8.8.8.8",
+        "type": "tls",
+        "tag": "google",
+        "server": "8.8.8.8"
+      }
+    ],
+    // strategy 从服务器级迁移到规则级
+    "rules": [
+      {
+        "server": "google",
         "strategy": "ipv4_only"
       }
     ]
   },
+  // 1.14 起证书统一由 certificate_provider 提供，不再内联 tls.acme
+  "certificate_providers": [
+    {
+      "type": "acme",
+      "tag": "acme",
+      "domain": [
+        "example.com" // TLS域名，通过内置的acme自动申请证书，无需手动干预，需要临时占用80端口
+      ],
+      "data_directory": "/etc/sing-box",
+      "default_server_name": "example.com",  // 你的域名
+      "email": "123456789admin@gmail.com"  // 申请证书的邮箱，可随意填写
+    }
+  ],
   "inbounds": [
     {
       "type": "hysteria2",
@@ -27,32 +49,13 @@
         "alpn": [
             "h3"
         ],
-        "acme": {
-          "domain": [
-            "example.com" // TLS域名，通过内置的acme自动申请证书，无需手动干预，需要临时占用80端口
-          ],
-          "data_directory": "/etc/sing-box",
-          "default_server_name": "example.com",  // 你的域名
-          "email": "123456789admin@gmail.com"  // 申请证书的邮箱，可随意填写
-        }
+        "certificate_provider": "acme"
       }
     }
   ],
   "outbounds": [
     {
       "type": "direct"
-    },
-    {
-      "type": "dns",
-      "tag": "dns-out"
     }
-  ],
-  "route": {
-    "rules": [
-      {
-        "protocol": "dns",
-        "outbound": "dns-out"
-      }
-    ]
-  }
+  ]
 }

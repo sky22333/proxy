@@ -2,6 +2,19 @@
   "log": {
     "level": "info"
   },
+  // 1.14 起证书统一由 certificate_provider 提供，不再内联在 tls.acme
+  "certificate_providers": [
+    {
+      "type": "acme",
+      "tag": "acme",
+      "domain": [
+        "example.com"
+      ],
+      "data_directory": "/etc/sing-box",
+      "default_server_name": "example.com",
+      "email": "123456789admin@gmail.com"
+    }
+  ],
   "inbounds": [
     {
       "type": "anytls",
@@ -16,14 +29,7 @@
       ],
       "tls": {
         "enabled": true,
-        "acme": {
-          "domain": [
-            "example.com"
-          ],
-          "data_directory": "/etc/sing-box",
-          "default_server_name": "example.com",
-          "email": "123456789admin@gmail.com"
-        }
+        "certificate_provider": "acme"
       }
     }
   ],

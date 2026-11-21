@@ -70,11 +70,21 @@ proxies:
   password: "password"
   udp: true
 
+# 代理组配置（备用线路需手动切换，故用 select 组承接）
+proxy-groups:
+  - name: "节点选择"
+    type: select
+    proxies:
+      - "anytls-out"
+      - "ssh-out"
+      - "ss-out"
+      - DIRECT
+
 rules:
   - IP-CIDR,10.0.0.0/8,DIRECT
   - IP-CIDR,172.17.0.1/16,DIRECT
   - IP-CIDR,192.168.0.0/16,DIRECT
   - IP-CIDR,127.0.0.0/8,DIRECT
   - GEOIP,CN,DIRECT
-  - MATCH,anytls-out
-  
+  - MATCH,节点选择
+

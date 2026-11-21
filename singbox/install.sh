@@ -11,7 +11,7 @@ CYAN='\033[36m'
 PURPLE='\033[35m'
 NC='\033[0m'
 
-V="${V:-1.13.12}"
+V="${V:-1.14.4}"
 
 CONFIG_DIR="/etc/sing-box"
 CONFIG_FILE="$CONFIG_DIR/config.json"

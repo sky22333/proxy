@@ -16,7 +16,6 @@
       ],
       "tls": {
         "enabled": true,
-        "insecure": true,
         "server_name": "bing.com",
         "certificate_path": "/etc/sing-box/cert.pem",
         "key_path": "/etc/sing-box/key.pem"

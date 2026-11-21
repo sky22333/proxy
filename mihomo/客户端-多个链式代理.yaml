@@ -89,4 +89,5 @@ rules:
   - IP-CIDR,192.168.0.0/16,DIRECT
   - IP-CIDR,127.0.0.0/8,DIRECT
   - GEOIP,CN,DIRECT
+  - DOMAIN-SUFFIX,example.org,socks-proxy2  # 第二条链：SS → SOCKS2
   - MATCH,socks-proxy  # 默认流量走链式代理：AnyTLS → SOCKS

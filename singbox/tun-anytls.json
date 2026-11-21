@@ -3,10 +3,12 @@
     "level": "info"
   },
   "dns": {
+    // 1.14 起 DNS 服务器改用 type + server 结构
     "servers": [
       {
+        "type": "udp",
         "tag": "google",
-        "address": "8.8.8.8"  
+        "server": "8.8.8.8"
       }
     ]
   },
@@ -15,7 +17,6 @@
       "type": "tun",
       "tag": "tun-in",
       "interface_name": "sing-tun",
-      "sniff": true,
       "address": [
         "10.254.0.1/24",
         "fd00::1/64"
@@ -50,8 +51,7 @@
     "auto_detect_interface": true,
     "rules": [
       {
-        "protocol": "dns",
-        "outbound": "direct"
+        "action": "sniff"
       },
       {
         "ip_version": 6,

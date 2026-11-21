@@ -11,22 +11,22 @@ listeners:
   - name: "SOCKS5 Inbound 1"
     type: socks
     port: 7891
-    rule: "FINAL,🇺🇸 VLESS美国"  # 将所有流量转发到美国 VLESS 节点
+    proxy: "🇺🇸 VLESS美国"  # 将所有流量转发到美国 VLESS 节点
 
   - name: "SOCKS5 Inbound 2"
     type: socks
     port: 7892
-    rule: "FINAL,🇯🇵 SS日本"     # 将所有流量转发到日本 Shadowsocks 节点
+    proxy: "🇯🇵 SS日本"     # 将所有流量转发到日本 Shadowsocks 节点
 
   - name: "SOCKS5 Inbound 3"
     type: socks
     port: 7893
-    rule: "FINAL,🇬🇧 HY2英国"    # 将所有流量转发到英国 Hysteria2 节点
+    proxy: "🇬🇧 HY2英国"    # 将所有流量转发到英国 Hysteria2 节点
 
   - name: "SOCKS5 Inbound 4"
     type: socks
     port: 7894
-    rule: "FINAL,🇭🇰 香港reality" # 将所有流量转发到香港 REALITY 节点
+    proxy: "🇭🇰 香港reality" # 将所有流量转发到香港 REALITY 节点
 
 # 代理配置
 proxies:
@@ -76,8 +76,8 @@ proxies:
     client-fingerprint: chrome # 客户端指纹
     servername: www.swift.com  # REALITY 伪装域名
     reality-opts:
-      public-key: yourPublicKey    # REALITY 公钥
-      short-id: yourShortId        # REALITY short-id
+      public-key: VVvx6dikiL9QL13B85GEIIIGhsqRMXXOadAqwhIU21Q  # 服务端 public-key
+      short-id: 862daff2292f7975    # 服务端 short-id
 
 # 代理组配置
 proxy-groups:

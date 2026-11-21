@@ -5,7 +5,7 @@ curl -fsSL https://raw.githubusercontent.com/sky22333/proxy/main/singbox/install
 
 支持环境变量传入版本号
 ```
-V=1.13.12
+V=1.14.4
 ```
 
 ---

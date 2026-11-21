@@ -10,7 +10,7 @@ bash <(curl -sSL https://cdn.jsdelivr.net/gh/sky22333/proxy@main/mihomo/install.
 #### `mihome`一键安装脚本（指定版本）
 ```
 # 指定版本变量
-v="1.19.25"
+v="1.19.34"
 
 # 一键安装
 bash <(curl -sSL https://raw.githubusercontent.com/sky22333/proxy/main/mihomo/install.sh)

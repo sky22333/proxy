@@ -8,15 +8,19 @@
       "protocol": "dokodemo-door",
       "settings": {
         "address": "127.0.0.1"
-      }
+      },
+      "tag": "dokodemo-in"
     }
   ],
   "outbounds": [
     {
       "tag": "direct",
       "protocol": "freedom",
-      "settings": {
-        "domainStrategy": "UseIP"
+      "settings": {},
+      "streamSettings": {
+        "sockopt": {
+          "domainStrategy": "UseIP"                       // 1.8 起从 freedom.settings 迁移到 sockopt
+        }
       }
     },
     {
@@ -24,20 +28,16 @@
       "protocol": "blackhole"
     },
     {
-      "tag": "vmess-out",
-      "protocol": "vmess",
+      "tag": "vless-out",
+      "protocol": "vless",
       "settings": {
-        "vnext": [
-          {
-            "address": "x.x.x.x",                      // 填云服务器公网IP
-            "port": 19988,
-            "users": [
-              {
-                "id": "bd8d13b2-f161-4ea5-b4d7-e5c145ccaeb7"   // 填云服务器公网的入站UUID
-              }
-            ]
-          }
-        ]
+        "address": "x.x.x.x",                             // 填云服务器公网IP
+        "port": 19988,
+        "id": "bd8d13b2-f161-4ea5-b4d7-e5c145ccaeb7",     // 填云服务器公网的入站UUID
+        "encryption": "mlkem768x25519plus.native.0rtt.WnZAN8a-15l6H0JHiWBGJifJZF4KNZysGPz6RcGrwkc",
+        "reverse": {
+          "tag": "reverse-in"                             // 反向通道在本机表现为入站
+        }
       },
       "streamSettings": {
         "network": "tcp",
@@ -49,22 +49,13 @@
     "rules": [
       {
         "type": "field",
-        "inboundTag": ["reverse-0"],
-        "outboundTag": "vmess-out",
-        "domain": ["full:reverse.xui"]
+        "inboundTag": ["reverse-in"],
+        "outboundTag": "direct"
       },
       {
         "type": "field",
-        "inboundTag": ["reverse-0"],
+        "inboundTag": ["dokodemo-in"],
         "outboundTag": "direct"
-      }
-    ]
-  },
-  "reverse": {
-    "bridges": [
-      {
-        "tag": "reverse-0",
-        "domain": "reverse.xui"
       }
     ]
   }

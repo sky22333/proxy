@@ -11,7 +11,7 @@ CYAN='\033[36m'
 PURPLE='\033[35m'
 NC='\033[0m'
 
-V="${V:-1.19.25}"
+V="${V:-1.19.34}"
 
 CONFIG_DIR="/etc/mihomo"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"

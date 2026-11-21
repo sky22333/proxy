@@ -6,11 +6,15 @@
     {
       "listen": "0.0.0.0",
       "port": 19988,
-      "protocol": "vmess",
+      "protocol": "vless",
       "settings": {
+        "decryption": "mlkem768x25519plus.native.600s.6C6oM-zkPLUb4UsFCCL2CqCEoSoEM1mYTweRwzKdBkc",
         "clients": [
           {
-            "id": "bd8d13b2-f161-4ea5-b4d7-e5c145ccaeb7"      // 接收家庭内网流量的入站
+            "id": "bd8d13b2-f161-4ea5-b4d7-e5c145ccaeb7",     // 接收家庭内网流量的入站
+            "reverse": {
+              "tag": "reverse-out"                            // 反向通道，内网 bridge 连到此处
+            }
           }
         ]
       },
@@ -23,8 +27,9 @@
     {
       "listen": "0.0.0.0",
       "port": 9988,
-      "protocol": "vmess",
+      "protocol": "vless",
       "settings": {
+        "decryption": "none",
         "clients": [
           {
             "id": "da53114b-22f0-4dc7-b21c-e11ed318d0e9"    // 代理软件连接的节点
@@ -41,8 +46,11 @@
   "outbounds": [
     {
       "protocol": "freedom",
-      "settings": {
-        "domainStrategy": "UseIP"
+      "settings": {},
+      "streamSettings": {
+        "sockopt": {
+          "domainStrategy": "UseIP"                       // 1.8 起从 freedom.settings 迁移到 sockopt
+        }
       },
       "tag": "direct"
     },
@@ -52,32 +60,21 @@
       "tag": "blocked"
     }
   ],
-  "reverse": {
-    "portals": [
-      {
-        "domain": "reverse.xui",
-        "tag": "reverse-0"
-      }
-    ]
-  },
   "routing": {
     "domainStrategy": "AsIs",
     "rules": [
       {
-        "domain": [
-          "full:reverse.xui"
-        ],
         "inboundTag": [
-          "inbound-19988"
+          "inbound-9988"
         ],
-        "outboundTag": "reverse-0",
+        "outboundTag": "reverse-out",
         "type": "field"
       },
       {
         "inboundTag": [
-          "inbound-9988"
+          "inbound-19988"
         ],
-        "outboundTag": "reverse-0",
+        "outboundTag": "blocked",
         "type": "field"
       }
     ]
