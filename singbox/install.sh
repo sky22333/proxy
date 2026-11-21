@@ -239,6 +239,11 @@ uninstall_singbox() {
 
   rm -rf "$CONFIG_DIR"
 
+  # 官方包用 StateDirectory= 和 sysusers 建的运行目录、用户，purge 不会带走
+  rm -rf /var/lib/"$SERVICE_NAME" /var/lib/"$SERVICE_NAME"-*
+  userdel "$SERVICE_NAME" 2>/dev/null || true
+  groupdel "$SERVICE_NAME" 2>/dev/null || true
+
   if command -v systemctl >/dev/null 2>&1; then
     systemctl daemon-reload || true
     systemctl reset-failed || true

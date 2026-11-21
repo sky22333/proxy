@@ -1,0 +1,3 @@
+# 一律用 LF 换行。Windows 上 core.autocrlf=true 会把 checkout 出来的脚本
+# 变成 CRLF，传到 Linux 后报 $'\r': command not found、shebang 直接失效。
+* text=auto eol=lf
