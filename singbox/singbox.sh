@@ -395,15 +395,6 @@ node_rewrite() {
   mv -f "$STATE.tmp" "$STATE"
 }
 
-# node_update <序号> <八字段>
-node_update() {
-  node_rewrite "$@"
-}
-
-node_remove() {
-  node_rewrite "$1"
-}
-
 proto_label() {
   case "$1" in
     reality) printf 'VLESS-REALITY' ;;
@@ -536,10 +527,10 @@ render_config() {
   # 显式上游：不依赖 /etc/resolv.conf，prefer_ipv4 规避 v6 不通导致的超时
   printf '  "dns": {\n'
   printf '    "servers": [\n'
-  printf '      {\n        "tag": "cf",\n        "type": "%s",\n        "server": "%s"\n      },\n' "$DNS_TYPE" "$DNS_UPSTREAM"
-  printf '      {\n        "tag": "local",\n        "type": "local"\n      }\n'
+  printf '      {\n        "tag": "cf",\n        "type": "%s",\n        "server": "%s"\n      }\n' "$DNS_TYPE" "$DNS_UPSTREAM"
   printf '    ],\n'
-  printf '    "final": "cf"\n'
+  printf '    "final": "cf",\n'
+  printf '    "strategy": "prefer_ipv4"\n'
   printf '  },\n'
 
   printf '  "inbounds": [\n'
@@ -566,7 +557,7 @@ render_config() {
 
   # 私网与保留地址一律拦掉，避免节点被当作访问内网 / 云 metadata 的跳板
   printf '  "route": {\n'
-  printf '    "default_domain_resolver": {\n      "server": "cf",\n      "strategy": "prefer_ipv4"\n    },\n'
+  printf '    "default_domain_resolver": {\n      "server": "cf"\n    },\n'
   printf '    "rules": [\n'
   printf '      {\n        "ip_is_private": true,\n        "outbound": "block"\n      }\n'
   printf '    ]\n'
@@ -844,7 +835,7 @@ do_add() {
   node_add "$_proto" "$TAG" "$PORT" "$_sec" "$DOMAIN" "${PBK:-}" "${PVK:-}" "${SID:-}"
 
   if ! apply_config; then
-    node_remove "$(node_count)"
+    node_rewrite "$(node_count)"
     warn "已撤销这次添加"
     return 1
   fi
@@ -922,10 +913,10 @@ do_change() {
       ;;
   esac
 
-  node_update "$_idx" "$_type" "$_tag" "$_port" "$_sec" "$_sni" "$_pbk" "$_pvk" "$_sid"
+  node_rewrite "$_idx" "$_type" "$_tag" "$_port" "$_sec" "$_sni" "$_pbk" "$_pvk" "$_sid"
 
   if ! apply_config; then
-    node_update "$_idx" "$_o_type" "$_o_tag" "$_o_port" "$_o_sec" "$_o_sni" "$_o_pbk" "$_o_pvk" "$_o_sid"
+    node_rewrite "$_idx" "$_o_type" "$_o_tag" "$_o_port" "$_o_sec" "$_o_sni" "$_o_pbk" "$_o_pvk" "$_o_sid"
     err "改动未生效，已恢复原值"
     return 1
   fi
@@ -950,7 +941,7 @@ do_del() {
     return 0
   fi
 
-  node_remove "$N_IDX"
+  node_rewrite "$N_IDX"
 
   if ! apply_config; then
     node_add "$N_TYPE" "$N_TAG" "$N_PORT" "$N_SEC" "$N_SNI" "$N_PBK" "$N_PVK" "$N_SID"
