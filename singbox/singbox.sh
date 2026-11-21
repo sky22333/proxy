@@ -41,7 +41,6 @@ CONFIG_FILE="$SB_DIR/config.json"
 CERT_DIR="$SB_DIR/cert"
 SERVICE_NAME="sing-box"
 
-# 内核：装到哪、装哪个版本
 SB_VERSION="${SB_VERSION:-1.14.4}"
 BIN_PATH="${BIN_PATH:-/usr/local/bin/$SERVICE_NAME}"
 UNIT_FILE="/etc/systemd/system/$SERVICE_NAME.service"
