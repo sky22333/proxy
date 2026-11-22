@@ -137,8 +137,8 @@ export function ConfigPanel() {
   const acme = server.certMode === 'acme'
 
   const [tab, setTab] = useState('config')
-  /** 证书页随最后一个 TLS 节点一起消失，别把用户留在空面板上 */
-  const activeTab = needsCert ? tab : 'config'
+  /** 证书页随最后一个 TLS 节点一起消失，别把用户留在空面板上；其它页照常可切 */
+  const activeTab = tab === 'cert' && !needsCert ? 'config' : tab
 
   const auto = useMemo(
     () => JSON.stringify(buildConfig(nodes, server), null, 2),
