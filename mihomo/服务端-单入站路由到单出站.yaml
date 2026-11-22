@@ -1,7 +1,7 @@
 # sk5入站路由到anytls出站
 # 基本配置
 mode: rule                # 规则模式
-log-level: debug           # 日志级别
+log-level: info           # 日志级别
 
 # socks入站配置
 listeners:

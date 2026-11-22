@@ -1,7 +1,7 @@
 # 多规则链式代理
 # 基本配置
 mode: rule                # 规则模式
-log-level: debug           # 日志级别
+log-level: info           # 日志级别
 
 # VMess入站配置
 listeners:

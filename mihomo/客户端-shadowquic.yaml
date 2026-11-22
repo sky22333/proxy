@@ -1,0 +1,66 @@
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+
+ipv6: false
+unified-delay: true
+tcp-concurrent: true
+find-process-mode: off
+
+profile:
+  store-selected: true
+
+# hosts 是顶层字段，与 dns 平级
+hosts:
+  doh.pub: [120.53.53.53, 1.12.12.21]
+  dns.alidns.com: [223.5.5.5, 223.6.6.6]
+
+dns:
+  enable: true
+  listen: 127.0.0.1:1053
+  ipv6: false
+  enhanced-mode: redir-host        # 不开 TUN 就别动
+  use-hosts: true
+  use-system-hosts: true
+  default-nameserver:              # 只用于引导解析 DoH 域名，必须是纯 IP
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  proxy-server-nameserver:         # server 写成域名时才真正生效
+    - https://dns.alidns.com/dns-query
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+
+proxies:
+  - name: sq
+    type: shadowquic
+    server: 203.0.113.10
+    port: 443
+    username: abc7f3a91c2
+    password: "K9mQ2xR7vT4pL8nW6sY1bJ5hD3gF0aZc"
+    sni: www.intel.com
+    alpn: [h3]
+    quic-versions: [v1]
+    congestion-controller: bbr
+    bbr-profile: standard
+    keep-alive-interval: 15000
+    zero-rtt: false
+    udp-over-stream: false
+    max-datagram-frame-size: 1400
+
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies: [sq, DIRECT]
+
+rules:
+  - GEOSITE,cn,DIRECT
+  - GEOIP,CN,DIRECT,no-resolve
+  - MATCH,PROXY
