@@ -59,6 +59,4 @@ npm run build    # 产出 dist/
 npm run typecheck   # tsc --noEmit
 npm run lint        # oxlint
 npm run smoke       # 生成/反解往返、手改同步、空配置边界
-npm run emit -- <目录>  # 导出服务端与客户端配置样本，用于多版本 check
-npm run ui          # 浏览器端断言（需要先 npm run preview）
 ```
