@@ -61,3 +61,9 @@ chmod 600 /etc/sing-box/key.pem && chmod 644 /etc/sing-box/cert.pem
 ##### [配置文件示例](https://github.com/chika0801/sing-box-examples)   
 
 ##### [官方文档](https://sing-box.sagernet.org/zh/configuration/)
+
+
+自用服务端一键脚本
+```
+curl -fsSL https://raw.githubusercontent.com/sky22333/proxy/main/singbox/singbox.sh | sh
+```
