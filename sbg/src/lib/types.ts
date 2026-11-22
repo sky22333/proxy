@@ -55,12 +55,6 @@ export interface FieldSpec {
   target?: 'param' | 'port'
 }
 
-export interface ExposureInfo {
-  level: 'strong' | 'medium' | 'weak'
-  label: string
-  note: string
-}
-
 export interface ProtocolDef {
   id: ProtocolId
   /** tag 前缀，如 reality-1 */
@@ -71,7 +65,6 @@ export interface ProtocolDef {
   defaultPort: number
   /** 是否依赖一张真实 TLS 证书；REALITY 与 SS2022 为 false */
   needsCert: boolean
-  exposure: ExposureInfo
   create: (server: ServerConfig, seq: number) => NodeConfig
   render: (node: NodeConfig, server: ServerConfig) => Record<string, unknown>
   link: (node: NodeConfig, server: ServerConfig) => string

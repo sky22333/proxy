@@ -12,11 +12,6 @@ export const anytls: ProtocolDef = {
   transport: 'tcp',
   defaultPort: DEFAULT_PORT,
   needsCert: true,
-  exposure: {
-    level: 'weak',
-    label: '需回落',
-    note: '没有回落页面，非客户端访问会看到 TLS 握手后直接断开，容易被指纹',
-  },
   create(_server, seq) {
     return {
       id: randomUuid(),

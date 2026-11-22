@@ -22,11 +22,6 @@ export const ss2022: ProtocolDef = {
   transport: 'both',
   defaultPort: DEFAULT_PORT,
   needsCert: false,
-  exposure: {
-    level: 'weak',
-    label: '无 TLS',
-    note: '2022 版修复了重放，但流量没有 TLS 外壳，特征可判定',
-  },
   create(_server, seq) {
     const method = '2022-blake3-aes-128-gcm'
     return {

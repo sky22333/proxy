@@ -13,11 +13,6 @@ export const reality: ProtocolDef = {
   transport: 'tcp',
   defaultPort: DEFAULT_PORT,
   needsCert: false,
-  exposure: {
-    level: 'strong',
-    label: '强伪装',
-    note: '握手失败会转发到真实站点，主动探测拿到的是一张真证书',
-  },
   create(_server, seq) {
     const keys = realityKeypair()
     return {

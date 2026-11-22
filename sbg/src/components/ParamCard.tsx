@@ -1,11 +1,9 @@
 import { RefreshCw } from 'lucide-react'
 import { FieldRow } from '@/components/FieldRow'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -14,12 +12,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { protocolOf } from '@/lib/protocols'
 import { useStore } from '@/store'
-
-const EXPOSURE_VARIANT = {
-  strong: 'secondary',
-  medium: 'outline',
-  weak: 'destructive',
-} as const
 
 export function ParamCard() {
   const nodes = useStore((s) => s.nodes)
@@ -34,13 +26,7 @@ export function ParamCard() {
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle className="flex flex-wrap items-center gap-2">
-          {def.label}
-          <Badge variant={EXPOSURE_VARIANT[def.exposure.level]} className="font-normal">
-            {def.exposure.label}
-          </Badge>
-        </CardTitle>
-        <CardDescription>{def.exposure.note}</CardDescription>
+        <CardTitle>{def.label}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2.5">
         <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3">

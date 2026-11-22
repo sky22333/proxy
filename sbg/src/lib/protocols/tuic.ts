@@ -18,11 +18,6 @@ export const tuic: ProtocolDef = {
   transport: 'udp',
   defaultPort: DEFAULT_PORT,
   needsCert: true,
-  exposure: {
-    level: 'medium',
-    label: '需证书',
-    note: '基于 QUIC，握手特征明显，依赖同一张域名证书',
-  },
   create(_server, seq) {
     return {
       id: randomUuid(),

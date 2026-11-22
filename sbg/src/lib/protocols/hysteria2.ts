@@ -12,11 +12,6 @@ export const hysteria2: ProtocolDef = {
   transport: 'udp',
   defaultPort: DEFAULT_PORT,
   needsCert: true,
-  exposure: {
-    level: 'medium',
-    label: '需证书',
-    note: '不是合法 QUIC 包会被直接丢弃，但 TLS 证书必须与域名一致',
-  },
   create(_server, seq) {
     return {
       id: randomUuid(),
