@@ -49,9 +49,9 @@ UNIT_FILE="/etc/systemd/system/$SERVICE_NAME.service"
 DEFAULT_REALITY_SNI="www.tesla.com"
 DEFAULT_TLS_SNI="bing.com"
 
-# DNS 上游：类型 udp / https / tls，境内线路建议改成 https 走 DoH
-DNS_TYPE="udp"
-DNS_UPSTREAM="1.1.1.1"
+# DNS 上游：类型 udp / tcp / tls / https，境内线路建议 https 走 DoH
+DNS_TYPE="${DNS_TYPE:-udp}"
+DNS_UPSTREAM="${DNS_UPSTREAM:-1.1.1.1}"
 
 # 公网地址缓存，避免重复探测
 _ADDR=""
@@ -100,9 +100,8 @@ err() {
 
 # read_re -> RE：读一行；管道执行（curl|sh）时改读 /dev/tty，SB_STDIN=1 强制读 stdin
 read_re() {
-  if [ "${SB_STDIN:-0}" = "1" ] || [ -t 0 ]; then
-    read -r RE || RE=""
-  elif [ -r /dev/tty ]; then
+  # 用「能否打开 /dev/tty」判断，而不是 [ -r ]：设备节点存在但无控制终端时后者会误判
+  if [ "${SB_STDIN:-0}" != "1" ] && [ ! -t 0 ] && { true < /dev/tty; } 2>/dev/null; then
     read -r RE < /dev/tty || RE=""
   else
     read -r RE || RE=""
@@ -298,13 +297,18 @@ node_count() {
   printf '%s' "$_n"
 }
 
+# port_used <端口> [忽略的行号]：端口是否被除该行以外的节点占用
 port_used() {
-  local _t _tag _port _rest _l
+  local _t _tag _port _rest _i _skip
+  _skip="${2:-0}"
+  _i=0
   [ -f "$STATE" ] || return 1
   while IFS="$SEP" read -r _t _tag _port _rest; do
     case "$_t" in
       ''|'#'*) continue ;;
     esac
+    _i=$((_i + 1))
+    [ "$_i" = "$_skip" ] && continue
     [ "$_port" = "$1" ] && return 0
   done < "$STATE"
   return 1
@@ -455,7 +459,7 @@ render_inbound() {
       "listen_port": $_port,
       "users": [
         {
-          "name": "$_tag",
+          "name": "user",
           "uuid": "$_secret",
           "flow": "xtls-rprx-vision"
         }
@@ -506,7 +510,7 @@ $_head
       "listen_port": $_port,
       "users": [
         {
-          "name": "$_tag",
+          "name": "user",
           "password": "$_secret"
         }
       ],$_masq
@@ -551,15 +555,14 @@ render_config() {
   printf '\n  ],\n'
 
   printf '  "outbounds": [\n'
-  printf '    {\n      "type": "direct",\n      "tag": "direct"\n    },\n'
-  printf '    {\n      "type": "block",\n      "tag": "block"\n    }\n'
+  printf '    {\n      "type": "direct",\n      "tag": "direct"\n    }\n'
   printf '  ],\n'
 
   # 私网与保留地址一律拦掉，避免节点被当作访问内网 / 云 metadata 的跳板
   printf '  "route": {\n'
   printf '    "default_domain_resolver": {\n      "server": "cf"\n    },\n'
   printf '    "rules": [\n'
-  printf '      {\n        "ip_is_private": true,\n        "outbound": "block"\n      }\n'
+  printf '      {\n        "ip_is_private": true,\n        "action": "reject"\n      }\n'
   printf '    ]\n'
   printf '  }\n'
   printf '}\n'
@@ -568,9 +571,11 @@ render_config() {
 # ════════════ 应用配置（校验 → 备份 → 替换 → 重启 → 回滚） ════════════
 
 apply_config() {
-  local _tmp _out
+  local _tmp _out _had
   mkdir -p "$SB_DIR"
   _tmp="$CONFIG_FILE.tmp"
+  _had=0
+  [ -f "$CONFIG_FILE" ] && _had=1
 
   render_config > "$_tmp" || {
     rm -f "$_tmp"
@@ -585,7 +590,7 @@ apply_config() {
     return 1
   fi
 
-  if [ -f "$CONFIG_FILE" ]; then
+  if [ "$_had" = "1" ]; then
     cp -f "$CONFIG_FILE" "$CONFIG_FILE.bak"
   fi
   mv -f "$_tmp" "$CONFIG_FILE"
@@ -604,9 +609,12 @@ apply_config() {
   fi
 
   warn "服务未起来，回滚到上一份配置"
-  if [ -f "$CONFIG_FILE.bak" ]; then
+  if [ "$_had" = "1" ] && [ -f "$CONFIG_FILE.bak" ]; then
     mv -f "$CONFIG_FILE.bak" "$CONFIG_FILE"
     svc_restart >/dev/null 2>&1
+  else
+    # 首次写入就失败，没有可回滚的版本：直接撤掉，别留一份跑不起来的配置
+    rm -f "$CONFIG_FILE" "$CONFIG_FILE.bak"
   fi
   err "已回滚，请检查 journalctl -u $SERVICE_NAME -n 30"
   return 1
@@ -716,16 +724,18 @@ choose_proto() {
   esac
 }
 
+# ask_port <默认端口> [忽略的行号] -> PORT
 ask_port() {
-  local _def
+  local _def _skip
   _def="$1"
+  _skip="${2:-0}"
   while true; do
     ask "端口" "$_def"
     if ! valid_port "$RE"; then
       err "端口必须是 1-65535 的数字"
       continue
     fi
-    if port_used "$RE"; then
+    if port_used "$RE" "$_skip"; then
       err "端口 $RE 已被其他节点占用"
       continue
     fi
@@ -871,7 +881,7 @@ do_change() {
 
   case "$_field" in
     1)
-      ask_port "$_port"
+      ask_port "$_port" "$_idx"
       _port="$PORT"
       ;;
     2)
@@ -918,6 +928,8 @@ do_change() {
   if ! apply_config; then
     node_rewrite "$_idx" "$_o_type" "$_o_tag" "$_o_port" "$_o_sec" "$_o_sni" "$_o_pbk" "$_o_pvk" "$_o_sid"
     err "改动未生效，已恢复原值"
+    # 新域名可能刚签过证书，回滚后若无人引用就一并清掉
+    cleanup_cert "$_sni"
     return 1
   fi
 
@@ -1316,6 +1328,10 @@ sing-box 节点管理脚本
   BIN_PATH      内核安装路径，默认 /usr/local/bin/sing-box
   SB_BIN        直接指定已有内核，设置后不再下载
   ADDR          分享链接里的服务器地址，默认自动探测
+  DNS_TYPE      DNS 上游类型 udp / tcp / tls / https，默认 udp
+  DNS_UPSTREAM  DNS 上游地址，默认 1.1.1.1
+
+生成的配置需要 sing-box >= 1.12（新版 DNS 格式与 default_domain_resolver）。
 EOF
 }
 
