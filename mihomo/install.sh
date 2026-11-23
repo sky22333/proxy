@@ -33,7 +33,7 @@ print_title() {
 detect_arch() {
   case "$(uname -m)" in
     x86_64 | amd64)
-      echo "amd64"
+      echo "amd64-v1"
       ;;
     aarch64 | arm64)
       echo "arm64"
