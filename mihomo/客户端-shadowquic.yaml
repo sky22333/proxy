@@ -1,15 +1,9 @@
 mixed-port: 7890
-allow-lan: false
-mode: rule
-log-level: info
 
 ipv6: false
 unified-delay: true
 tcp-concurrent: true
 find-process-mode: off
-
-profile:
-  store-selected: true
 
 # hosts 是顶层字段，与 dns 平级
 hosts:
@@ -18,11 +12,6 @@ hosts:
 
 dns:
   enable: true
-  listen: 127.0.0.1:1053
-  ipv6: false
-  enhanced-mode: redir-host        # 不开 TUN 就别动
-  use-hosts: true
-  use-system-hosts: true
   default-nameserver:              # 只用于引导解析 DoH 域名，必须是纯 IP
     - 223.5.5.5
     - 119.29.29.29
@@ -34,9 +23,6 @@ dns:
   fallback:
     - https://1.1.1.1/dns-query
     - https://8.8.8.8/dns-query
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
 
 proxies:
   - name: sq
@@ -48,12 +34,9 @@ proxies:
     sni: www.intel.com
     alpn: [h3]
     quic-versions: [v1]
-    congestion-controller: bbr
-    bbr-profile: standard
-    keep-alive-interval: 15000
     zero-rtt: false
-    udp-over-stream: false
-    max-datagram-frame-size: 1400
+    congestion-controller: bbr
+    keep-alive-interval: 15000
 
 proxy-groups:
   - name: PROXY

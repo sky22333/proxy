@@ -1,5 +1,4 @@
 # /etc/mihomo/config.yaml
-log-level: info
 ipv6: false
 
 listeners:
@@ -19,11 +18,6 @@ listeners:
     quic-versions: [v1]
     zero-rtt: false
     congestion-controller: bbr
-    bbr-profile: standard
-    cwnd: 32
-    max-idle-time: 30000
-    max-datagram-frame-size: 1400
-    disable-mtu-discovery: false
     proxy: DIRECT                  # 认证通过后的流量直接出网
 
 rules:
