@@ -135,7 +135,6 @@ install_mihomo() {
   echo -e "${GREEN}版本: v${V}${NC}"
   echo -e "${GREEN}架构: ${ARCH}${NC}"
   echo -e "${GREEN}配置文件路径: ${CONFIG_FILE}${NC}"
-  echo -e "${YELLOW}启动服务前请先生成证书，否则 anytls 可能启动失败。${NC}"
 }
 
 uninstall_mihomo() {
