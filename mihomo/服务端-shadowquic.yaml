@@ -9,7 +9,7 @@ listeners:
     users:
       - username: abc7f3a91c2
         password: "K9mQ2xR7vT4pL8nW6sY1bJ5hD3gF0aZc"   # openssl rand -base64 24
-      # 一个用户一条，便于单独吊销
+
     jls-upstream:
       addr: www.intel.com:443 # 必须支持 HTTP/3
       sni: www.intel.com      # 与客户端 sni 完全一致
