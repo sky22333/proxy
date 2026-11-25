@@ -6,13 +6,18 @@ mode: rule                # 规则模式
 # 开启tun模式
 tun:
   enable: true
-  stack: system
   auto-route: true
-  auto-redirect: true
+  auto-redirect: true          # 仅 Linux 生效；Windows 会忽略
   auto-detect-interface: true
-  device: utun0
-  mtu: 9000
-  strict-route: true
+  gso: true                    # 仅 Linux 生效；Windows 会忽略
+  mtu: 1500
+  congestion-controller: bbr   # 只在 mips 栈下生效，而 mips 是默认栈
+  exclude-src-port:            # 源端口命中就不注入 TUN 路由（保护入站）
+    - 22
+    - 3389
+  dns-hijack:
+    - any:53
+    - tcp://any:53
 
 geox-url:
   geoip: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
