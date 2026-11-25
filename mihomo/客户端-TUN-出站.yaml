@@ -1,7 +1,8 @@
-# 全局配置
-mixed-port: 7890          # 入站混合协议
-allow-lan: false          # 局域网连接
-mode: rule                # 规则模式
+mixed-port: 7890
+ipv6: false
+unified-delay: true
+tcp-concurrent: true
+find-process-mode: off
 
 # 开启tun模式
 tun:
