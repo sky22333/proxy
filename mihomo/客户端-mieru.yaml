@@ -1,0 +1,42 @@
+mixed-port: 7890
+
+ipv6: false
+unified-delay: true
+tcp-concurrent: true
+find-process-mode: off
+
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  fake-ip-filter: [geosite:private]         # 内网域名不伪造，保住局域网发现
+  default-nameserver: [223.5.5.5, 119.29.29.29]   # 默认含不可达的 8.8.8.8，必须覆盖
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  proxy-server-nameserver:                  # 解析节点域名，杜绝回环
+    - https://dns.alidns.com/dns-query
+  nameserver-policy:
+    "geosite:geolocation-!cn": [https://1.1.1.1/dns-query]
+  respect-rules: true                       # 让 1.1.1.1 走代理
+
+proxies:
+  - name: mieru
+    type: mieru
+    server: 203.0.113.10        # 或域名
+    port-range: 20000-20099     # 与服务端区间一致；与 port 互斥
+    transport: TCP
+    udp: true
+    username: alice
+    password: "f6b4e12ef00c826f82e48bcb848635bf5a962080e642956adee9376fe17c96a5"
+
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies: [mieru, DIRECT]
+
+rules:
+  - GEOSITE,private,DIRECT
+  - GEOIP,LAN,DIRECT,no-resolve
+  - GEOSITE,cn,DIRECT
+  - GEOIP,CN,DIRECT,no-resolve
+  - MATCH,PROXY
