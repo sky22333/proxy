@@ -1,0 +1,9 @@
+listeners:
+  - name: mieru-in
+    type: mieru
+    listen: 0.0.0.0
+    port: "20000-20099"      # 区间语法，逗号分隔也支持："20000-20049,20100"
+    transport: TCP           # 必填，没有默认值
+    users:
+      alice: "f6b4e12ef00c826f82e48bcb848635bf5a962080e642956adee9376fe17c96a5"  # openssl rand -hex 32
+    tcp-idle-timeout: 1800   # 秒，最小 60；回收 NAT 后的死连接
