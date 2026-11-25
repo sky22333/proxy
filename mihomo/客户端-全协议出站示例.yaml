@@ -5,6 +5,13 @@ allow-lan: false          # 局域网连接
 mode: rule                # 规则模式
 log-level: info           # 日志级别
 
+geox-url:
+  geoip: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
+  geosite: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+  mmdb: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
+geo-auto-update: true
+geo-update-interval: 24
+
 # 防DNS泄漏和污染
 dns:
   enable: true
