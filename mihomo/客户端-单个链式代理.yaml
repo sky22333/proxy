@@ -15,6 +15,13 @@ tun:
   mtu: 9000
   strict-route: true
 
+geox-url:
+  geoip: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
+  geosite: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+  mmdb: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
+geo-auto-update: true
+geo-update-interval: 24
+
 # 防DNS泄漏和污染
 dns:
   enable: true
