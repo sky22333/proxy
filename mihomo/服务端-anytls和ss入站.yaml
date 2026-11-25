@@ -20,10 +20,3 @@ listeners:
   private-key: ./server.key
   # 客户端 skip-cert-verify: true
   # 客户端 sni: example.com
-
-proxies:
-- name: "direct"
-  type: direct
-
-rules:
-- MATCH,direct
