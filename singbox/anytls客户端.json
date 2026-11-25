@@ -1,35 +1,134 @@
 {
   "log": {
-    "level": "warn",
+    "level": "info",
     "timestamp": true
   },
+
+  "dns": {
+    "servers": [
+      {
+        "type": "udp",
+        "tag": "bootstrap",
+        "server": "223.5.5.5"
+      },
+      {
+        "type": "https",
+        "tag": "cn",
+        "server": "dns.alidns.com",
+        "domain_resolver": "bootstrap",
+        "detour": "direct"
+      },
+      {
+        "type": "local",
+        "tag": "local"
+      }
+    ],
+    "rules": [
+      {
+        "rule_set": ["geosite-private"],
+        "action": "route",
+        "server": "local"
+      }
+    ],
+    "final": "cn"
+  },
+
   "inbounds": [
     {
       "type": "mixed",
-      "tag": "socks",
+      "tag": "mixed-in",
       "listen": "127.0.0.1",
-      "listen_port": 10808
+      "listen_port": 7890
     }
   ],
+
   "outbounds": [
     {
       "type": "anytls",
       "tag": "anytls-out",
-      "server": "你的服务器地址",
-      "server_port": 8443,
-      "password": "8JCsPssfgS8tiRwiMlhARg==",
+      "server": "anytls.example.com",
+      "server_port": 443,
+      "password": "00000000-0000-0000-0000-000000000000",
+      "domain_resolver": "bootstrap",
+      "min_idle_session": 2,
       "tls": {
-        "enabled": true,
-        "server_name": "你的域名"
+        "enabled": true
       }
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
     }
   ],
+
   "route": {
+    "auto_detect_interface": true,
+    "default_domain_resolver": "cn",
     "rules": [
       {
-        "inbound": ["socks"],
-        "outbound": "anytls-out"
+        "ip_is_private": true,
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["geosite-private"],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "domain_suffix": ["giteeusercontent.com"],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["geosite-cn"],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["geoip-cn"],
+        "action": "route",
+        "outbound": "direct"
+      }
+    ],
+    "final": "anytls-out",
+    "rule_set": [
+      {
+        "tag": "geosite-private",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-private.srs",
+        "update_interval": "1d",
+        "http_client": {
+          "detour": "direct"
+        }
+      },
+      {
+        "tag": "geosite-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+        "update_interval": "1d",
+        "http_client": {
+          "detour": "direct"
+        }
+      },
+      {
+        "tag": "geoip-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+        "update_interval": "1d",
+        "http_client": {
+          "detour": "direct"
+        }
       }
     ]
+  },
+
+  "experimental": {
+    "cache_file": {
+      "enabled": true
+    }
   }
 }
