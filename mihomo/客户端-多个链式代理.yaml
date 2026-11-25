@@ -4,17 +4,6 @@ allow-lan: false          # 局域网连接
 mode: rule                # 规则模式
 log-level: info          # 日志级别
 
-# 开启tun模式
-tun:
-  enable: true
-  stack: system
-  auto-route: true
-  auto-redirect: true
-  auto-detect-interface: true
-  device: utun0
-  mtu: 9000
-  strict-route: true
-
 geox-url:
   geoip: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
   geosite: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
