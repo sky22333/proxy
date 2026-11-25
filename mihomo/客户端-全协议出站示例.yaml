@@ -7,24 +7,17 @@ log-level: info           # 日志级别
 
 dns:
   enable: true
-  listen: :53
-  ipv6: true
   enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  default-nameserver: 
-    - 223.5.5.5
-    - 8.8.8.8
+  fake-ip-filter: [geosite:private]         # 内网域名不伪造，保住局域网发现
+  default-nameserver: [223.5.5.5, 119.29.29.29]   # 默认含不可达的 8.8.8.8，必须覆盖
   nameserver:
     - https://dns.alidns.com/dns-query
     - https://doh.pub/dns-query
-  fallback:
-    - https://1.0.0.1/dns-query
-    - tls://dns.google
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
-    ipcidr:
-      - 240.0.0.0/4
+  proxy-server-nameserver:                  # 解析节点域名，杜绝回环
+    - https://dns.alidns.com/dns-query
+  nameserver-policy:
+    "geosite:geolocation-!cn": [https://1.1.1.1/dns-query]
+  respect-rules: true                       # 让 1.1.1.1 走代理
 
 
 #（二区）==============================（代理协议）
