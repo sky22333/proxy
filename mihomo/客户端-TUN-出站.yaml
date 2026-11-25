@@ -2,7 +2,6 @@
 mixed-port: 7890          # 入站混合协议
 allow-lan: false          # 局域网连接
 mode: rule                # 规则模式
-log-level: info          # 日志级别
 
 # 开启tun模式
 tun:
@@ -17,27 +16,17 @@ tun:
 
 dns:
   enable: true
-  listen: 0.0.0.0:1053
-  enhanced-mode: redir-host
+  enhanced-mode: fake-ip
+  fake-ip-filter: [geosite:private]         # 内网域名不伪造，保住局域网发现
+  default-nameserver: [223.5.5.5, 119.29.29.29]   # 默认含不可达的 8.8.8.8，必须覆盖
   nameserver:
     - https://dns.alidns.com/dns-query
     - https://doh.pub/dns-query
-  fallback:
-    - https://1.1.1.1/dns-query
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
-  use-hosts: true
-
-hosts:
-  doh.pub: [
-    '120.53.53.53',
-    '1.12.12.21'
-  ]
-  dns.alidns.com: [
-    '223.5.5.5',
-    '223.6.6.6'
-  ]
+  proxy-server-nameserver:                  # 解析节点域名，杜绝回环
+    - https://dns.alidns.com/dns-query
+  nameserver-policy:
+    "geosite:geolocation-!cn": [https://1.1.1.1/dns-query]
+  respect-rules: true                       # 让 1.1.1.1 走代理
 
 
 # 分割线 =============================（以下节点配置可直接复制到Clash-Verge配置，用作客户端配置）
