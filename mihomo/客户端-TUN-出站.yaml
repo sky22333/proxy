@@ -14,6 +14,8 @@ tun:
   congestion-controller: bbr   # 只在 mips 栈下生效，而 mips 是默认栈
   exclude-src-port:            # 源端口命中就不注入 TUN 路由（保护入站）
     - 22
+    - 80
+    - 443
     - 3389
   dns-hijack:
     - any:53
@@ -82,7 +84,6 @@ proxy-groups:
 
 rules:
   - IP-CIDR,10.0.0.0/8,DIRECT
-  - IP-CIDR,172.17.0.1/16,DIRECT
   - IP-CIDR,192.168.0.0/16,DIRECT
   - IP-CIDR,127.0.0.0/8,DIRECT
   - GEOIP,CN,DIRECT
