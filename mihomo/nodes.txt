@@ -1,0 +1,10 @@
+# 一行一条分享链接，改完自动生效，不用重启
+# 支持：vless hy2 hysteria2 anytls tuic trojan ss vmess
+
+vless://57f12945-8219-4460-992f-3d3cd1e08612@203.0.113.10:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.tesla.com&fp=chrome&pbk=2KZ4uouMKgI8nR-LDJNP1_MHisCJOmKGj9jUjZLncVU&sid=6ba85179e30d4fc2&type=tcp#reality-hk
+
+hysteria2://example123@203.0.113.11:8443?sni=example.com&insecure=1#hy2-hk
+
+anytls://5oiR55yf5piv5pyN5LqGYeS4jeimgeS7gOS5iOmDveaKhA==@203.0.113.12:8443?sni=example.com&insecure=1#anytls-jp
+
+ss://2022-blake3-aes-128-gcm:AAECAwQFBgcICQoLDA0ODw==@203.0.113.13:8388#ss-sg

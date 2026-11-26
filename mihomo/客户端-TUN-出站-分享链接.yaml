@@ -1,0 +1,77 @@
+mixed-port: 7890
+ipv6: false
+unified-delay: true
+tcp-concurrent: true
+find-process-mode: off
+profile:
+  store-selected: true         # 记住面板里选的节点
+
+tun:
+  enable: true
+  auto-route: true
+  auto-redirect: true          # 仅 Linux
+  auto-detect-interface: true
+  gso: true                    # 仅 Linux
+  mtu: 1500
+  congestion-controller: bbr   # 仅 stack: system 生效
+  exclude-src-port: [22, 80, 443, 3389]   # 源端口命中不进 TUN
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+
+geox-url:
+  geoip: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
+  geosite: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+  mmdb: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
+
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  fake-ip-filter: [geosite:private]
+  default-nameserver: [223.5.5.5, 119.29.29.29]
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query
+  nameserver-policy:
+    "geosite:private": [system]
+    "geosite:geolocation-!cn": [https://1.1.1.1/dns-query]
+  respect-rules: true
+
+
+# 分割线 =============================（以下节点配置可直接复制到Clash-Verge配置，用作客户端配置）
+
+# 节点全部来自 nodes.txt；path 相对 -d 目录，GUI 里建议写绝对路径
+proxy-providers:
+  sub:
+    type: file
+    path: ./nodes.txt
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 180             # 秒
+      timeout: 3000             # 毫秒
+      lazy: false               # 启动即测
+    override:
+      additional-prefix: "sub/"
+
+proxy-groups:
+  - name: "auto"                # 自动挡：同一站点固定同一节点
+    type: load-balance
+    use: [sub]
+    url: https://www.gstatic.com/generate_204
+    interval: 180
+    strategy: consistent-hashing
+
+  - name: "节点选择"             # 手动挡：默认 auto，也可直接点节点
+    type: select
+    proxies: ["auto", DIRECT]
+    use: [sub]
+
+rules:
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,节点选择
