@@ -20,14 +20,8 @@ docker run -d \
 # 安装 / 升级 Xray
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
 
-# 安装指定版本
-bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -v v1.8.4
-
 # 完全卸载
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ remove --purge
-
-# 只更新 geoip.dat 和 geosite.dat
-bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install-geodata
 
 # 开机自启
 systemctl enable xray
@@ -92,3 +86,5 @@ www.icloud.com
 #####  [更多配置模板](https://github.com/XTLS/Xray-examples)
 
 #####  [配置文档](https://xtls.github.io/config/)
+
+全球海底光缆分布图：https://www.submarinecablemap.com/
