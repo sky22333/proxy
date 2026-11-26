@@ -1,0 +1,154 @@
+{
+  "log": {
+    "level": "info",
+    "timestamp": true
+  },
+
+  "dns": {
+    "servers": [
+      {
+        "type": "udp",
+        "tag": "bootstrap",
+        "server": "223.5.5.5"
+      },
+      {
+        "type": "https",
+        "tag": "cn",
+        "server": "dns.alidns.com",
+        "domain_resolver": "bootstrap",
+        "detour": "direct"
+      },
+      {
+        "type": "local",
+        "tag": "local"
+      }
+    ],
+    "rules": [
+      {
+        "rule_set": ["geosite-private"],
+        "action": "route",
+        "server": "local"
+      }
+    ],
+    "final": "cn"
+  },
+
+  "inbounds": [
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 7890
+    }
+  ],
+
+  // 节点全部来自分享链接：hysteria2://密码@IP:端口?sni=xxx&insecure=1#名字
+  // 同一份 nodes.txt 可以混放 hy2 / anytls / vless，协议由链接前缀决定
+  "providers": [
+    {
+      "type": "local",
+      "tag": "sub",
+      "path": "/etc/sing-box/nodes.txt",
+      "health_check": {
+        "enabled": true,
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": "3m",
+        "timeout": "3s"
+      }
+    }
+  ],
+
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "proxy",
+      "outbounds": ["auto"],
+      "providers": ["sub"],
+      "default": "auto",
+      "interrupt_exist_connections": true
+    },
+    {
+      // 按目标地址哈希：同一站点固定同一节点，QUIC 连接不会来回跳
+      "type": "loadbalance",
+      "tag": "auto",
+      "providers": ["sub"],
+      "strategy": "consistent-hashing",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "3m",
+      "idle_timeout": "30m"
+    },
+    {
+      "type": "direct",
+      "tag": "direct",
+      // 必须让 direct 非空：DNS 与 rule_set 的 detour 都指向它，
+      // 空 direct 会被内核拒绝启动（detour to an empty direct outbound makes no sense）
+      "domain_resolver": "bootstrap"
+    }
+  ],
+
+  "route": {
+    "auto_detect_interface": true,
+    "default_domain_resolver": "cn",
+    "rules": [
+      {
+        "ip_is_private": true,
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["geosite-private"],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["geosite-cn"],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["geoip-cn"],
+        "action": "route",
+        "outbound": "direct"
+      }
+    ],
+    "final": "proxy",
+    "rule_set": [
+      {
+        "tag": "geosite-private",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-private.srs",
+        "update_interval": "1d",
+        "http_client": {
+          "detour": "direct"
+        }
+      },
+      {
+        "tag": "geosite-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+        "update_interval": "1d",
+        "http_client": {
+          "detour": "direct"
+        }
+      },
+      {
+        "tag": "geoip-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+        "update_interval": "1d",
+        "http_client": {
+          "detour": "direct"
+        }
+      }
+    ]
+  },
+
+  "experimental": {
+    "cache_file": {
+      "enabled": true
+    }
+  }
+}

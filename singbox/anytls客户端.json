@@ -76,11 +76,6 @@
         "outbound": "direct"
       },
       {
-        "domain_suffix": ["giteeusercontent.com"],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
         "rule_set": ["geosite-cn"],
         "action": "route",
         "outbound": "direct"

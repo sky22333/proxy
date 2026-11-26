@@ -1,0 +1,179 @@
+// sing-box 1.14+  SS-2022 + TUN 全局代理（节点来自分享链接）
+{
+  "log": {
+    "level": "info",        // trace/debug/info/warn/error
+    "timestamp": true       // 日志带时间戳
+  },
+
+  "dns": {
+    "servers": [
+      {
+        "type": "udp",
+        "tag": "bootstrap",
+        "server": "223.5.5.5"            // 只用于解析 DoH 域名，避免"解析 DoH 要先连 DoH"
+      },
+      {
+        "type": "https",
+        "tag": "cn",
+        "server": "dns.alidns.com",      // 主力 DoH
+        "domain_resolver": "bootstrap"   // 不写 detour 则查询走代理组，可加 "detour": "direct" 直连
+      },
+      {
+        "type": "local",
+        "tag": "local"                   // 系统 DNS，只给内网域名
+      },
+      {
+        "type": "fakeip",
+        "tag": "fakeip",                 // TUN 核心：A 查询直接返回假 IP，连接进 TUN 后再按域名分流
+        "inet4_range": "198.18.0.0/15"   // RFC2544 保留段，不与公私网冲突
+      }
+    ],
+    "rules": [
+      {
+        "query_type": ["AAAA"],
+        "action": "predefined",
+        "rcode": "NOERROR"               // 禁用 IPv6，防止绕过 TUN 裸奔
+      },
+      {
+        "rule_set": ["geosite-private"],
+        "action": "route",
+        "server": "local"                // 必须排在 fakeip 前，否则内网域名也拿到假 IP
+      },
+      {
+        "query_type": ["A"],
+        "action": "route",
+        "server": "fakeip"
+      }
+    ],
+    "final": "cn"                        // 其余记录类型（HTTPS/SVCB 等）走 DoH
+  },
+
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "address": ["172.19.0.1/30"],      // 避开 Docker 的 172.17/172.18 和 fake-ip 的 198.18
+      "mtu": 1500,                       // 链路 MTU<1500 时降到 1400 防分片
+      "auto_route": true,                // 自动写系统默认路由
+      "auto_redirect": true              // 仅Linux用，Windows/macOS 必须删掉此行
+    },
+    {
+      "type": "mixed",                   // HTTP+SOCKS5 本地入站
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 7890
+    }
+  ],
+
+  "providers": [
+    {
+      "type": "local",
+      "tag": "sub",
+      "path": "/etc/sing-box/nodes.txt",   // 每行一条分享链接，改完自动重载
+      "health_check": {
+        "enabled": true,
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": "3m",
+        "timeout": "3s"
+      }
+    }
+  ],
+
+  "outbounds": [
+    {
+      "type": "selector",                  // 手动挡，default 写谁就固定走谁
+      "tag": "proxy",
+      "outbounds": ["auto"],
+      "providers": ["sub"],
+      "default": "auto",                   // 默认交给下面的自动挡
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "loadbalance",               // 自动挡：同一目标固定同一节点
+      "tag": "auto",
+      "providers": ["sub"],
+      "strategy": "sticky-sessions",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "3m",
+      "idle_timeout": "30m",
+      "ttl": "10m"
+    },
+    {
+      "type": "direct",                    // 直连出站，规则里引用
+      "tag": "direct",
+      "domain_resolver": "bootstrap"       // 必须非空：DNS 与 rule_set 的 detour 都指向它，
+                                           // 空 direct 会被内核拒绝启动（detour to an empty direct outbound makes no sense）
+    }
+  ],
+
+  "route": {
+    "auto_detect_interface": true,       // 多网卡或换网卡时必需
+    "default_domain_resolver": "cn",
+    "rules": [
+      {
+        "port": 53,
+        "action": "hijack-dns"           // 拦下所有 DNS 查询，fake-ip 才生效
+      },
+      {
+        "ip_is_private": true,
+        "action": "route",
+        "outbound": "direct"             // 内网 IP 直连
+      },
+      {
+        "rule_set": ["geosite-private"],
+        "action": "route",
+        "outbound": "direct"             // 内网域名直连
+      },
+      {
+        "rule_set": ["geosite-cn"],
+        "action": "route",
+        "outbound": "direct"             // 国内域名直连，需排在 geoip 之前
+      },
+      {
+        "rule_set": ["geoip-cn"],
+        "action": "route",
+        "outbound": "direct"             // 国内 IP 直连，兜住纯 IP 连接
+      }
+    ],
+    "final": "proxy",                    // 其余全部走代理组
+    "rule_set": [
+      {
+        "tag": "geosite-private",
+        "type": "remote",
+        "format": "binary",              // .srs 二进制，体积小、加载快
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-private.srs",
+        "update_interval": "1d",
+        "http_client": {
+          "detour": "direct"             // 必须直连，否则代理挂→规则集下不来→国内也断
+        }
+      },
+      {
+        "tag": "geosite-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+        "update_interval": "1d",
+        "http_client": {
+          "detour": "direct"
+        }
+      },
+      {
+        "tag": "geoip-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+        "update_interval": "1d",
+        "http_client": {
+          "detour": "direct"
+        }
+      }
+    ]
+  },
+
+  "experimental": {
+    "cache_file": {
+      "enabled": true,                   // 缓存规则集、节点、fake-ip
+      "store_fakeip": true               // fake-ip 映射落盘，重启不丢
+    }
+  }
+}

@@ -1,0 +1,16 @@
+# 节点分享链接清单，每行一条，内核按顺序解析，解析不了的行自动跳过（注释也会跳过）
+# 支持：vless:// hysteria2:// hy2:// anytls:// tuic:// trojan:// ss:// vmess://
+# 修改保存后自动重载，不用重启内核；顺序不影响分流，选路由 loadbalance 决定
+# 名字取 # 后面那段，节点标签里显示的就是它
+
+# REALITY：uuid / sni / pbk 与 sid 必须和服务端一致
+vless://57f12945-8219-4460-992f-3d3cd1e08612@203.0.113.10:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.tesla.com&fp=chrome&pbk=2KZ4uouMKgI8nR-LDJNP1_MHisCJOmKGj9jUjZLncVU&sid=6ba85179e30d4fc2&type=tcp#reality-hk
+
+# Hysteria2：自签证书要带 insecure=1；正式证书把 insecure 删掉
+hysteria2://example123@203.0.113.11:8443?sni=example.com&insecure=1#hy2-hk
+
+# AnyTLS：密码放 @ 前面，没有用户名
+anytls://5oiR55yf5piv5pyN5LqGYeS4jeimgeS7gOS5iOmDveaKhA==@203.0.113.12:8443?sni=example.com&insecure=1#anytls-jp
+
+# Shadowsocks-2022：method:password@host:port，也接受 SIP002 的 base64 用户信息
+ss://2022-blake3-aes-128-gcm:AAECAwQFBgcICQoLDA0ODw==@203.0.113.13:8388#ss-sg

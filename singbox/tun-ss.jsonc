@@ -100,11 +100,6 @@
         "outbound": "direct"             // 内网域名直连
       },
       {
-        "domain_suffix": ["giteeusercontent.com"],
-        "action": "route",
-        "outbound": "direct"             // 国内镜像，走代理反而慢
-      },
-      {
         "rule_set": ["geosite-cn"],
         "action": "route",
         "outbound": "direct"             // 国内域名直连，需排在 geoip 之前
