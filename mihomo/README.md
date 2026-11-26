@@ -2,12 +2,12 @@
 
 - [内核地址](https://github.com/MetaCubeX/mihomo/releases)
 
-#### `mihome`一键安装脚本
+#### `mihome` 管理脚本
 ```
 bash <(curl -sSL https://cdn.jsdelivr.net/gh/sky22333/proxy@main/mihomo/install.sh)
 ```
 
-#### `mihome`一键安装脚本（指定版本）
+#### `mihome` 安装脚本（指定版本）
 ```
 # 指定版本变量
 v="1.19.34"
